@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>Email Builder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    body {
+      padding: 2rem;
+      background-color: #121212;
+    }
+    .form-label {
+      margin-top: 0.5rem;
+    }
+    .preview-box {
+      background-color: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 1rem;
+      min-height: 400px;
+    }
+    .btn {
+      margin-right: 0.5rem;
+    }
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <div class="row g-4">
+      <div class="col-md-4">
+        <h3 class="mb-4 text-light">Email Settings</h3>
+        <div class="mb-3">
+          <label class="form-label">Загрузить CSV</label>
+          <input type="file" class="form-control" id="csvFile" accept=".csv" onchange="handleCSVUpload(event)">
+        </div>
+        <div class="mb-3">
+          <label for="lang" class="form-label">Language</label>
+          <select id="lang" class="form-select">
+            <option value="english">English</option>
+            <option value="german">Deutsch</option>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Language</label>
+          <input id="language" class="form-control" disabled />
+        </div>
+        <div class="mb-3">
+          <label class="form-label">Email</label>
+          <input id="email" class="form-control" readonly onclick="copyEmail()" />
+        </div>
+        
+        <div class="mb-3">
+          <label for="name" class="form-label">Name</label>
+          <input id="name" class="form-control" placeholder="e.g. Handelszeitung.ch" />
+        </div>
+        <div class="mb-3">
+          <label for="old_link" class="form-label">Old URL</label>
+          <input id="old_link" class="form-control" placeholder="e.g. http://old.com" />
+        </div>
+        <div class="mb-3">
+          <label for="new_link" class="form-label">New URL</label>
+          <input id="new_link" class="form-control" placeholder="e.g. https://new.com" />
+        </div>
+        <div class="mb-3">
+          <label for="articles" class="form-label">Article URLs</label>
+          <textarea id="articles" class="form-control" rows="4" placeholder="One URL per line"></textarea>
+        </div>
+        <div class="d-flex mb-3">
+          
+          <button class="btn btn-secondary me-2" onclick="loadPrev()">Предыдущее письмо</button>
+          <button class="btn btn-secondary" onclick="loadNext()">Следующее письмо</button>
+          <button class="btn btn-outline-success me-2" onclick="markAsSent()">Отправлено</button>
+        </div>
+        
+      </div>
+      <div class="col-md-8">
+        <h3 class="mb-4 text-light">Preview</h3>
+        <div class="preview-box text-white" id="output"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let template = '';
+
+    async function fetchTemplate() {
+      const lang = document.getElementById('lang').value;
+      const res = await fetch('/api/template/' + lang);
+      const data = await res.json();
+      template = data.template;
+      updatePreview();
+    }
+
+    function updatePreview() {
+      const values = {
+        name: document.getElementById('name').value,
+        old_link: document.getElementById('old_link').value,
+        new_link: document.getElementById('new_link').value,
+        articles: document.getElementById('articles').value
+          .split('\n')
+          .filter(x => x.trim())
+          .map(link => `<li><a href="${link}">${link}</a></li>`)
+          .join('')
+      };
+
+      let result = template;
+      for (const key in values) {
+        const regex = new RegExp(`%${key}%`, 'g');
+        result = result.replace(regex, values[key] || '');
+      }
+
+      document.getElementById('output').innerHTML = result;
+    }
+
+    async function downloadHTML() {
+      const lang = document.getElementById('lang').value;
+      const values = {
+        name: document.getElementById('name').value,
+        old_link: document.getElementById('old_link').value,
+        new_link: document.getElementById('new_link').value,
+        articles: document.getElementById('articles').value
+          .split('\n')
+          .filter(x => x.trim())
+          .map(link => `<li><a href="${link}">${link}</a></li>`)
+          .join('')
+      };
+
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lang, values })
+      });
+
+      const html = await res.text();
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'email.html';
+      a.click();
+    }
+
+    function copyToClipboard() {
+      const html = document.getElementById('output').innerHTML;
+      const el = document.createElement('textarea');
+      el.value = html;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      alert("Email HTML copied to clipboard!");
+    }
+
+    window.onload = () => {
+  const params = new URLSearchParams(window.location.search);
+  const article = params.get('article');
+  const domain = params.get('domain');
+
+  if (article) document.getElementById('articles').value = article;
+  if (domain) document.getElementById('name').value = domain;
+
+  document.getElementById('old_link').value = 'ellington-hotel.com';
+  document.getElementById('new_link').value = 'https://ellington-hotel.com-en.com/';
+
+  fetchTemplate(); // подтянуть шаблон сразу
+};
+
+document.getElementById('lang').addEventListener('change', fetchTemplate);
+
+
+  </script>
+  <script>
+    let emailData = [];
+    let currentIndex = 0;
+    
+    function handleCSVUpload(event) {
+  const file = event.target.files[0];
+  if (!file) return;
+
+  Papa.parse(file, {
+  header: true,
+  skipEmptyLines: true,
+  complete: function(results) {
+    const rawData = results.data;
+    console.log("Raw parsed data:", rawData);
+
+    // Попытка найти нужные ключи независимо от кавычек/пробелов
+    const sampleRow = rawData[0] || {};
+    const keys = Object.keys(sampleRow);
+
+    const urlKey = keys.find(k => k.toLowerCase().includes('referr'));
+    const langKey = keys.find(k => k.toLowerCase().includes('lang'));
+    const emailKey = keys.find(k => k.toLowerCase().includes('email'));
+
+    if (!urlKey || !emailKey) {
+      alert("Не удалось найти нужные поля (URL или Email). Проверь заголовки CSV.");
+      return;
+    }
+
+    emailData = rawData.map(row => {
+      return {
+        url: row[urlKey]?.trim() || '',
+        lang: row[langKey]?.trim() || 'Not specified',
+        email: row[emailKey]?.trim() || ''
+      };
+    }).filter(row => row.url && row.email);
+
+    console.log("Filtered emailData:", emailData);
+    alert("Загружено писем: " + emailData.length);
+
+    currentIndex = 0;
+    loadNext();
+  }
+});
+}
+
+    
+    function extractDomain(url) {
+      try {
+        const u = new URL(url);
+        return u.hostname;
+      } catch (e) {
+        return '';
+      }
+    }
+    
+    function loadNext() {
+      if (currentIndex >= emailData.length) {
+        alert("Больше нет писем!");
+        return;
+      }
+    
+      const { url, lang, email } = emailData[currentIndex++];
+      document.getElementById('articles').value = url;
+      document.getElementById('name').value = extractDomain(url);
+      document.getElementById('language').value = lang;
+      document.getElementById('email').value = email;
+    
+      updatePreview();
+    }
+    function loadPrev() {
+  if (currentIndex <= 1) {
+    alert("Это первое письмо!");
+    return;
+  }
+  currentIndex -= 2; // чтобы показать предыдущее
+  loadNext();        // потому что loadNext увеличит снова
+}
+
+    
+    function copyEmail() {
+      const email = document.getElementById('email');
+      email.select();
+      email.setSelectionRange(0, 99999);
+      document.execCommand('copy');
+      alert("Email скопирован!");
+    }
+    </script>
+    
+</body>
+</html>

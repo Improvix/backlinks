@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Мои проекты</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" />
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js"></script>
+
+</head>
+<body class="bg-dark text-light p-4 loading">
+    <div id="loginScreen" class="text-center mt-5">
+        <h3>🔐 Авторизуйтесь через Google</h3>
+        <button id="loginBtn" class="btn btn-primary mt-3">Увійти через Google</button>
+      </div>
+      <div id="app" style="display: none;">    
+  <div class="container">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <h2>📁 Мои проекты</h2>
+      <button id="logoutBtn" class="btn btn-outline-light btn-sm"></button>
+    </div>
+</div>
+    <!-- Кнопка для добавления проекта -->
+<div class="modal fade" id="editProjectModal" tabindex="-1" aria-labelledby="editProjectModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="editProjectModalLabel">Редактировать проект</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <div class="modal-body">
+          <form id="editProjectForm">
+            <input type="hidden" id="editProjectId" />
+            <div class="mb-3">
+              <label class="form-label">Название</label>
+              <input type="text" class="form-control" id="editProjectName" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Основной домен</label>
+              <input type="text" class="form-control" id="editMainDomain" required />
+            </div>
+            <div class="mb-3">
+              <label class="form-label">Пользователи</label>
+              <select multiple class="form-control" id="editUserSelect" required></select>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Клон-домен</label>
+                <input type="text" class="form-control" id="editClonDomain" />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Redirect URL</label>
+                <input type="text" class="form-control" id="editRedirectUrl" />
+              </div>
+              <div class="mb-3">
+                <label class="form-label">Дата создания</label>
+                <input type="text" class="form-control" id="editDateCreate" disabled />
+              </div>
+              
+            <button type="submit" class="btn btn-success">Сохранить изменения</button>
+          </form>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+<!-- Поп-ап для добавления проекта -->
+<div class="modal fade" id="addProjectModal" tabindex="-1" aria-labelledby="addProjectModalLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="addProjectModalLabel">Добавить новый проект</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body">
+        <form id="addProjectForm">
+          <div class="mb-3">
+            <label for="projectName" class="form-label">Название проекта</label>
+            <input type="text" class="form-control" id="projectName" required>
+          </div>
+          <div class="mb-3">
+            <label for="mainDomain" class="form-label">Основной домен</label>
+            <input type="text" class="form-control" id="mainDomain" required>
+          </div>
+          
+          <div class="mb-3">
+            <label for="clonDomain" class="form-label">Клон-домен</label>
+            <input type="text" class="form-control" id="clonDomain">
+          </div>
+          <div class="mb-3">
+            <label for="redirectUrl" class="form-label">Redirect URL</label>
+            <input type="text" class="form-control" id="redirectUrl">
+          </div>
+          <div class="mb-3">
+            <label for="userSelect" class="form-label">Назначить пользователям</label>
+            <select multiple class="form-control" id="userSelect" required></select>
+          </div>
+          
+          
+          <button type="submit" class="btn btn-primary">Добавить проект</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+<table class="table table-hover table-dark table-sm custom-table rounded-3 overflow-hidden shadow-sm">
+    <thead>
+        <tr>
+          <th>🌐 Домен</th>
+          <th>📌 Статус</th>
+          <th>🔗 Backlinks</th>
+          <th>📧 Email Research</th>
+          <th>📬 Emails Sent</th>
+          <th>✅ URL Changed</th>
+          <th>⚙️ Действия</th>
+          <th>📤 Upload CSV</th>
+
+        </tr>
+      </thead>
+      <tbody id="projectTable"></tbody>
+    </table>
+  </div>
+
+  <script>
+    const firebaseConfig = {
+      apiKey: "AIzaSyAOB-rSJQ4XDJyIQu6Totoqnoz6O2CkNP8",
+      authDomain: "backlinks-b4154.firebaseapp.com",
+      projectId: "backlinks-b4154",
+    };
+
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+    document.getElementById('loginBtn').onclick = async () => {
+  const provider = new firebase.auth.GoogleAuthProvider();
+  try {
+    await auth.signInWithPopup(provider);
+  } catch (e) {
+    console.error('Помилка входу:', e);
+    alert('Не вдалося авторизуватись');
+  }
+};
+
+    document.getElementById('logoutBtn').onclick = async () => {
+  try {
+    await auth.signOut();
+    alert('Вы вышли из аккаунта');
+    location.reload(); // перезагрузим страницу для входа другим пользователем
+  } catch (e) {
+    console.error('Ошибка выхода:', e);
+    alert('Ошибка выхода из аккаунта');
+  }
+};
+
+auth.onAuthStateChanged(async (user) => {
+  const loginScreen = document.getElementById('loginScreen');
+  const app = document.getElementById('app');
+
+  if (!user) {
+    // ❌ Не авторизований — показуємо кнопку входу
+    loginScreen.style.display = 'block';
+    app.style.display = 'none';
+  } else {
+    // ✅ Авторизований — ховаємо логін і показуємо app
+    loginScreen.style.display = 'none';
+    app.style.display = 'block';
+
+    document.getElementById('logoutBtn').innerText = user.displayName || 'Выйти';
+
+
+    // ✅ Сохраняем пользователя в Firestore под UID (если его ещё нет)
+    const userDocRef = firebase.firestore().collection('users').doc(user.uid);
+    const doc = await userDocRef.get();
+    if (!doc.exists) {
+      await userDocRef.set({
+        email: user.email,
+        type: 'user'
+      });
+    }
+
+    // Загружаем данные
+    loadProjects(user.uid);
+    await loadAllUsers();
+  }
+
+  // ✅ Убираем прелоадинг и включаем анимацию
+  document.body.classList.remove('loading');
+  document.body.classList.add('loaded');
+});
+
+
+
+    
+
+    const statusMap = {
+  isSubdomainAndArchivarix: { text: "Subdomain +archivarix", color: "bg-purple text-white" },
+  found_email: { text: "Found Email", color: "bg-primary text-white" },
+  send_emails: { text: "Send Emails", color: "bg-warning text-dark" },
+  check_admin: { text: "Check Admin", color: "bg-secondary text-white" },
+  close: { text: "Close", color: "bg-success text-white" }
+};
+
+window.changeProjectStatus = async function (projectId, newStatus) {
+  try {
+    const res = await fetch(`/api/project/${projectId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_status: newStatus })
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      const select = document.querySelector(`select[data-project-id="${projectId}"]`);
+      const statusCell = select.closest('td');
+      statusCell.className = "p-2"; // сброс
+      statusMap[newStatus]?.color.split(" ").forEach(cls => statusCell.classList.add(cls));
+
+      console.log('✅ Статус обновлён');
+    } else {
+      alert('Ошибка обновления статуса: ' + result.error);
+    }
+  } catch (err) {
+    console.error('Ошибка:', err);
+    alert('Не удалось обновить статус');
+  }
+};
+
+    async function loadProjects(userId) {
+        // USER ID ADMIN
+const isAdmin = userId === 'uaLaAOAxa1SgNP3fKPbvkzG8asa2';
+
+      const res = await fetch(`/api/user-projects?userId=${userId}`);
+      const projects = await res.json();
+      const table = document.getElementById('projectTable');
+      table.innerHTML = '';
+
+      // 👇 ДОБАВЬ ЭТО сюда
+  if (isAdmin) {
+    const container = document.querySelector('.container');
+    const addButton = document.createElement('button');
+    addButton.className = 'btn btn-primary mb-4'; // небольшой отступ вниз
+    addButton.setAttribute('data-bs-toggle', 'modal');
+    addButton.setAttribute('data-bs-target', '#addProjectModal');
+    addButton.textContent = 'Добавить проект';
+    container.appendChild(addButton);
+  }
+
+      for (const p of projects) {
+  const tr = document.createElement('tr');
+
+  
+
+
+ const status = p.project_status || 'isSubdomainAndArchivarix';
+const badge = statusMap[status] || { text: status, color: 'bg-light text-dark' };
+let statusCell = `<span class="badge ${badge.color}" style="font-size: 0.8rem;">${badge.text}</span>`;
+
+if (isAdmin) {
+  statusCell = `
+    <select class="form-select form-select-sm w-auto status-dropdown ${badge.color}" 
+            onchange="changeProjectStatus('${p.projectId}', this.value)" 
+            data-project="${p.projectId}">
+      ${Object.entries(statusMap).map(([key, val]) =>
+        `<option value="${key}" ${key === status ? 'selected' : ''}>${val.text}</option>`
+      ).join('')}
+    </select>
+  `;
+}
+
+
+tr.innerHTML = `
+  <td>${p.mainDomain}</td>
+  <td>${statusCell}</td>
+  <td>${p.backlinks}</td>
+  <td>${p.emailResearch}</td>
+<td><a href="sent.html?projectId=${p.projectId}" class="text-decoration-none text-info">${p.emailsSent}</a></td>
+  <td>${p.parsedCount}</td>
+  
+  <td>
+        <a href="${p.hasResearchLeft ? 'research.html' : 'email-builder.html'}?projectId=${p.projectId}" class="btn btn-sm btn-outline-light">▶️</a>
+        ${isAdmin ? `
+          <button class="btn btn-sm btn-outline-warning ms-1" onclick='openEditModal(${JSON.stringify(p)})'>✏️</button>
+        ` : ''}
+      </td>
+<td>
+  ${isAdmin ? `
+    <div style="min-width: 180px">
+      <input type="file" id="file-${p.projectId}" data-project="${p.projectId}" style="display:none" accept=".csv" onchange="uploadCSV(this)">
+      <button class="btn btn-sm btn-success mb-1" onclick="triggerFileInput('${p.projectId}')">📤 Загрузить CSV</button>
+      <div id="spinner-${p.projectId}" class="spinner-border text-success ms-2" style="width: 20px; height: 20px; display: none;" role="status">
+        <span class="visually-hidden">Загрузка...</span>
+      </div>
+    </div>
+  ` : ''}
+</td>
+
+
+`;
+
+
+
+  table.appendChild(tr);
+}
+
+    }
+
+
+document.getElementById('addProjectForm').addEventListener('submit', async function(event) {
+  event.preventDefault();
+
+  const projectName = document.getElementById('projectName').value;
+  const mainDomain = document.getElementById('mainDomain').value;
+  const clonDomain = document.getElementById('clonDomain').value.trim();
+const redirectUrl = document.getElementById('redirectUrl').value.trim();
+const dateCreate = new Date().toISOString(); // 🆕 дата создания
+
+  const selected = Array.from(document.getElementById('userSelect').selectedOptions).map(opt => opt.value);
+if (selected.length === 0) {
+  alert('Выберите хотя бы одного пользователя!');
+  return;
+}
+
+  if (!projectName || !mainDomain ) {
+    alert('Все поля обязательны!');
+    return;
+  }
+
+  try {
+    const res = await fetch('/api/create-project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        name: projectName,
+        mainDomain,
+        userIds: selected,
+        clonDomain,
+  redirectUrl,
+  dateCreate
+      })
+    });
+
+    const result = await res.json();
+    if (result.success) {
+        const modalElement = document.getElementById('addProjectModal');
+const modalInstance = bootstrap.Modal.getInstance(modalElement);
+modalInstance.hide();
+      document.getElementById('addProjectForm').reset();
+      alert('Проект добавлен успешно!');
+      location.reload();
+    } else {
+      alert('Ошибка: ' + (result.error || 'не удалось добавить проект'));
+    }
+  } catch (error) {
+    console.error('Ошибка при добавлении проекта:', error);
+    alert('Не удалось добавить проект. Попробуйте снова.');
+  }
+});
+
+async function loadAllUsers() {
+    try {
+      const res = await fetch('/api/all-users');
+      const users = await res.json();
+
+      const select = document.getElementById('userSelect');
+      select.innerHTML = ''; // очищаем, если вдруг уже были
+
+      users.forEach(user => {
+        const opt = document.createElement('option');
+        opt.value = user.uid;
+        opt.textContent = user.email;
+        select.appendChild(opt);
+      });
+    } catch (e) {
+      console.error('Ошибка загрузки пользователей:', e);
+    }
+  }
+
+  async function openEditModal(project) {
+  document.getElementById('editProjectId').value = project.projectId;
+  document.getElementById('editProjectName').value = project.name;
+  document.getElementById('editMainDomain').value = project.mainDomain;
+  document.getElementById('editClonDomain').value = project.clonDomain || '';
+document.getElementById('editRedirectUrl').value = project.redirectUrl || '';
+document.getElementById('editDateCreate').value = project.dateCreate ? new Date(project.dateCreate).toLocaleString() : '';
+
+
+  const select = document.getElementById('editUserSelect');
+  select.innerHTML = '';
+
+  const res = await fetch('/api/all-users');
+  const users = await res.json();
+
+  users.forEach(user => {
+    const opt = document.createElement('option');
+    opt.value = user.uid;
+    opt.textContent = user.email;
+    if (project.userIds?.includes(user.uid)) {
+      opt.selected = true;
+    }
+    select.appendChild(opt);
+  });
+
+  const modal = new bootstrap.Modal(document.getElementById('editProjectModal'));
+  modal.show();
+}
+
+document.getElementById('editProjectForm').addEventListener('submit', async function(event) {
+
+  event.preventDefault();
+
+  const id = document.getElementById('editProjectId').value;
+  const name = document.getElementById('editProjectName').value;
+  const mainDomain = document.getElementById('editMainDomain').value;
+  const clonDomain = document.getElementById('editClonDomain').value.trim();
+const redirectUrl = document.getElementById('editRedirectUrl').value.trim();
+
+  const userIds = Array.from(document.getElementById('editUserSelect').selectedOptions).map(opt => opt.value);
+
+  try {
+    const res = await fetch(`/api/project/${id}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ name, mainDomain, userIds, clonDomain, redirectUrl })
+    });
+
+    const result = await res.json();
+    if (result.success) {
+      const modal = bootstrap.Modal.getInstance(document.getElementById('editProjectModal'));
+      modal.hide();
+      alert('Проект обновлён!');
+      location.reload();
+    } else {
+      alert('Ошибка: ' + result.error);
+    }
+  } catch (e) {
+    console.error('Ошибка:', e);
+    alert('Проект не обновлён');
+  }
+});
+
+
+
+  </script>
+  <script>
+    window.triggerFileInput = function(projectId) {
+      document.getElementById(`file-${projectId}`).click();
+    };
+  
+    window.uploadCSV = async function(input) {
+  const file = input.files[0];
+  const projectId = input.dataset.project;
+  const row = input.closest('tr');
+  const mainDomain = row?.querySelector('td')?.textContent?.trim() || '';
+
+  if (!file || !projectId || !mainDomain) {
+    alert("Файл, проект или домен не определены");
+    return;
+  }
+
+  const spinner = document.getElementById(`spinner-${projectId}`);
+  spinner.style.display = 'inline-block';
+
+  Papa.parse(file, {
+    header: true,
+    skipEmptyLines: true,
+    complete: async function(results) {
+      const rawData = results.data;
+      const total = rawData.length;
+      let uploaded = 0;
+
+      const keys = Object.keys(rawData[0] || {}).map(k => k.trim().toLowerCase());
+      const urlKey = Object.keys(rawData[0] || {}).find(k => k.trim().toLowerCase() === 'referring page url');
+      const langKey = Object.keys(rawData[0] || {}).find(k => k.trim().toLowerCase() === 'language');
+
+      if (!urlKey) {
+        alert("CSV должен содержать колонку 'Referring page URL'");
+        return;
+      }
+
+      for (let i = 0; i < total; i++) {
+        const row = rawData[i];
+        const entry = {
+          url: row[urlKey]?.trim() || '',
+          lang: langKey ? (row[langKey]?.trim() || '') : '',
+          email: '',
+          mainDomain,
+          status: 'new',
+          reStatus: 'new',
+          createdAt: new Date().toISOString()
+        };
+
+        if (entry.url) {
+          const res = await fetch(`/api/project-backlinks/${projectId}/add`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(entry)
+          });
+
+          if (res.ok) uploaded++;
+        }
+
+        // 🔁 Обновляем прогресс по индексу, а не по uploaded
+        const percent = Math.round(((i + 1) / total) * 100);
+        console.log(`👉 ${percent}% заполнено`);
+
+      }
+
+      setTimeout(() => {
+      }, 800);
+
+      alert(`✅ Загружено: ${uploaded} из ${total}`);
+      location.reload();
+    }
+  });
+};
+
+window.changeProjectStatus = async function (projectId, newStatus) {
+  try {
+    const res = await fetch(`/api/project/${projectId}`, {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ project_status: newStatus })
+    });
+
+    const result = await res.json();
+
+    if (result.success) {
+      console.log('✅ Статус обновлён');
+
+      // 🔄 Находим селект и его <td>
+        const select = document.querySelector(`select[data-project="${projectId}"]`);
+
+        if (select) {
+  // Удаляем старые цветовые классы с самого select
+  select.classList.remove('bg-purple', 'bg-primary', 'bg-warning', 'bg-secondary', 'bg-success', 'text-white', 'text-dark');
+
+  // Добавляем новые
+  const colorClasses = statusMap[newStatus]?.color?.split(' ') || [];
+  colorClasses.forEach(cls => select.classList.add(cls));
+}
+
+      //if (td) {
+        // Удаляем все старые цветовые классы
+        //td.classList.remove('bg-purple', 'bg-primary', 'bg-warning', 'bg-secondary', 'bg-success', 'text-white', 'text-dark');
+
+        // Добавляем новые классы по статусу
+       // const colorClasses = statusMap[newStatus]?.color?.split(' ') || [];
+       // colorClasses.forEach(cls => td.classList.add(cls));
+      //}
+
+    } else {
+      alert('Ошибка обновления статуса: ' + result.error);
+    }
+  } catch (err) {
+    console.error('Ошибка:', err);
+    alert('Не удалось обновить статус');
+  }
+};
+
+
+
+  </script>
+  
+  
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    .bg-purple {
+      background-color: #6f42c1 !important;
+      color: #fff !important;
+    }
+    .bg-primary {
+      background-color: #0d6efd !important;
+      color: #fff !important;
+    }
+    .bg-warning {
+      background-color: #ffc107 !important;
+      color: #000 !important;
+    }
+    .bg-secondary {
+      background-color: #6c757d !important;
+      color: #fff !important;
+    }
+    .bg-success {
+      background-color: #198754 !important;
+      color: #fff !important;
+    }
+    .custom-table {
+  border-collapse: collapse; /* 👈 важно для обводки всех ячеек */
+  width: 100%;
+  background-color: #1f1f1f;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 0 20px rgba(0, 0, 0, 0.4);
+  border: 1px solid rgba(255, 255, 255, 0.15); /* внешняя обводка */
+}
+
+.custom-table th,
+.custom-table td {
+  border: 1px solid rgba(255, 255, 255, 0.1); /* внутренняя обводка ячеек */
+  padding: 0.75rem 1rem;
+  vertical-align: middle;
+  color: #eaeaea;
+}
+
+.custom-table th {
+  background-color: #2a2a2a;
+  color: #f1f1f1;
+  font-weight: 600;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.custom-table tbody tr:nth-child(even) {
+  background-color: rgba(255, 255, 255, 0.02);
+}
+
+.custom-table tbody tr:hover {
+  background-color: rgba(255, 255, 255, 0.06);
+  cursor: pointer;
+}
+
+.table td a.btn,
+.table td button.btn {
+  font-size: 0.75rem;
+  padding: 0.3rem 0.6rem;
+}
+
+body.loading #loginScreen,
+body.loading #app {
+  display: none !important;
+}
+body.loaded #app {
+  animation: fadeIn 0.4s ease-in-out;
+}
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+
+  </style>
+  
+  
+  
+</body>
+</html>

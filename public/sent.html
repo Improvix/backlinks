@@ -1,0 +1,308 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>Отправленные письма</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+  <style>
+    .row-changed {
+      background-color: rgba(25, 135, 84, 0.25) !important; /* Bootstrap green with transparency */
+    }
+  </style>
+
+</head>
+<body class="bg-dark text-white p-4">
+  <div class="container">
+    <h2 class="mb-4">📬 Отправленные письма</h2>
+    <a href="email-builder.html" class="btn btn-outline-light mb-3">← Назад к письмам</a>
+
+    <button class="btn btn-outline-info mb-3" onclick="parseLinks()">🔍 Спарсить</button>
+    <button class="btn btn-success mb-3" onclick="filterChangedOnly()">
+        Изменено: <span id="changedCount">0</span>
+      </button>
+  
+
+    <table class="table table-dark table-bordered">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Проект</th>
+          <th>URL</th>
+          <th>Язык сайта</th>
+          <th>Язык письма</th>
+          <th>Email</th>
+          <th>Дата отправки</th>
+          <th>Проверка ссылки</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="sentTable">
+        <tr><td colspan="4">Загрузка...</td></tr>
+      </tbody>
+    </table>
+    <a href="email-builder.html" class="btn btn-outline-light mt-3">← Назад к письмам</a>
+  </div>
+
+  <script>
+    async function loadSent() {
+      const projectId = new URLSearchParams(window.location.search).get('projectId');
+  const res = await fetch(`/api/project-backlinks/sent?projectId=${projectId}`);
+  const data = await res.json();
+
+      const tbody = document.getElementById('sentTable');
+      tbody.innerHTML = '';
+
+      if (data.length === 0) {
+        tbody.innerHTML = '<tr><td colspan="4">Нет отправленных писем</td></tr>';
+        return;
+      }
+
+      data.forEach((entry, i) => {
+  const tr = document.createElement('tr');
+
+  let changedClass = '';
+  let btnClass = 'btn-outline-success';
+  let disabledAttr = '';
+
+  if (entry.changed === 'yes' || entry.check_url_change === 'yes') {
+  changedClass = 'bg-success bg-opacity-25'; // - подсветка ячеек
+  btnClass = 'btn-success';
+  disabledAttr = 'disabled';
+}
+
+
+  let checkIcon = '⏳';
+if (entry.check_url_change === 'yes') checkIcon = '✅';
+else if (entry.check_url_change === 'no') checkIcon = '❌';
+else if (entry.check_url_change === 'error') checkIcon = '⚠️';
+
+tr.innerHTML = `
+  <td class="${changedClass}">${i + 1}</td>
+  <td class="${changedClass}">${entry.mainDomain || '-'}</td>
+  <td class="${changedClass}"><a href="${entry.url}" class="text-info" target="_blank">${entry.url}</a></td>
+  <td class="${changedClass}">${entry.lang || ''}</td>
+  <td class="${changedClass}">${entry.emailLang || ''}</td>
+  <td class="${changedClass}">${entry.email}</td>
+  <td class="${changedClass}">${entry.sentAt ? new Date(entry.sentAt).toLocaleString() : ''}</td>
+  <td class="text-center ${changedClass}" id="check-cell-${entry.id}">${checkIcon}</td>
+  <td class="text-center d-flex gap-1 justify-content-center ${changedClass}">
+    <button class="btn btn-sm ${btnClass}" onclick="markChanged('${entry.id}', this)" title="Отметить как изменённую ссылку" ${disabledAttr}>
+      ✅
+    </button>
+    <button class="btn btn-sm btn-outline-warning" onclick="revert('${entry.id}', this)" title="Вернуть в список">
+      <i class="bi bi-arrow-counterclockwise"></i>
+    </button>
+  </td>
+`;
+
+
+  tbody.appendChild(tr);
+});
+// Подсчет и обновление количества check_url_change: 'yes'
+
+const changedCount = data.filter(entry => entry.check_url_change === 'yes').length;
+document.getElementById('changedCount').textContent = changedCount;
+
+
+    }
+
+    async function revert(id, button) {
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+  if (!confirm('Вернуть письмо в статус "new"?')) return;
+
+  const res = await fetch(`/api/project-backlinks/${projectId}/${id}/revert`, { method: 'POST' });
+  if (res.ok) {
+    const row = button.closest('tr');
+    row.remove();
+  } else {
+    alert('Ошибка при возврате письма.');
+  }
+}
+
+async function markChanged(id, button) {
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+  const confirmed = confirm('Отметить ссылку как изменённую?');
+  if (!confirmed) return;
+
+  const res = await fetch(`/api/project-backlinks/${projectId}/${id}/changed`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ changed: 'yes', check_url_change: 'yes' })
+  });
+
+  if (res.ok) {
+    button.classList.remove('btn-outline-success');
+    button.classList.add('btn-success');
+    button.disabled = true;
+
+    // Найдём всю строку и перекрасим зелёным
+    const row = button.closest('tr');
+    row.classList.add('bg-success', 'bg-opacity-25');
+
+    // Обновим иконку в колонке "Проверка ссылки"
+    const cell = document.getElementById(`check-cell-${id}`);
+    if (cell) {
+      cell.innerHTML = '✅';
+      cell.classList.remove('text-danger', 'text-warning');
+      cell.classList.add('text-success');
+    }
+  } else {
+    alert('Ошибка при сохранении изменения.');
+  }
+}
+
+
+async function parseLinks() {
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+
+  const res = await fetch(`/api/project-backlinks/sent?projectId=${projectId}`);
+  const all = await res.json();
+  const toCheck = all.filter(link => link.check_url_change !== 'yes');
+
+  for (const entry of toCheck) {
+    const cell = document.getElementById(`check-cell-${entry.id}`);
+    if (cell) {
+      cell.innerHTML = `<div class="spinner-border spinner-border-sm text-light" role="status"></div>`;
+    }
+  }
+
+  const res2 = await fetch(`/api/project-backlinks/check-sent`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ projectId, ids: toCheck.map(e => e.id) })
+});
+
+  const data = await res2.json();
+
+  for (const entry of data) {
+    const cell = document.getElementById(`check-cell-${entry.id}`);
+    const row = cell?.closest('tr');
+
+    if (!cell) continue;
+
+    if (entry.status === 'yes') {
+      cell.innerHTML = '✅';
+      cell.classList.remove('text-danger', 'text-warning');
+      cell.classList.add('text-success');
+
+      // 💚 Подсветим строку зелёным
+      if (row) {
+        row.classList.add('bg-success', 'bg-opacity-25');
+      }
+    } else if (entry.status === 'no') {
+      cell.innerHTML = '❌';
+      cell.classList.remove('text-success', 'text-warning');
+      cell.classList.add('text-danger');
+    } else {
+      cell.innerHTML = '⚠️';
+      cell.classList.remove('text-success', 'text-danger');
+      cell.classList.add('text-warning');
+    }
+  }
+}
+
+let filtering = false; // глобальная переменная
+
+async function filterChangedOnly() {
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+  const res = await fetch(`/api/project-backlinks/sent?projectId=${projectId}`);
+  const data = await res.json();
+
+  const tbody = document.getElementById('sentTable');
+  tbody.innerHTML = '';
+
+  const changedBtn = document.querySelector('button[onclick="filterChangedOnly()"]');
+
+  if (filtering) {
+    // 🔁 Показываем весь список
+    filtering = false;
+    changedBtn.innerHTML = `Изменено: <span id="changedCount">${data.filter(e => e.check_url_change === 'yes').length}</span>`;
+    data.forEach((entry, i) => tbody.appendChild(createRow(entry, i)));
+  } else {
+    // 🔍 Показываем только изменённые
+    filtering = true;
+    const filtered = data.filter(entry => entry.check_url_change === 'yes');
+    changedBtn.innerHTML = `Показать все (${filtered.length})`;
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = '<tr><td colspan="9">Нет изменённых ссылок</td></tr>';
+      return;
+    }
+
+    filtered.forEach((entry, i) => tbody.appendChild(createRow(entry, i)));
+  }
+}
+
+function updateChangedCounter() {
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+  fetch(`/api/project-backlinks/sent?projectId=${projectId}`)
+    .then(res => res.json())
+    .then(data => {
+      const changedCount = data.filter(e => e.check_url_change === 'yes').length;
+      document.getElementById('changedCount').textContent = changedCount;
+    });
+}
+
+
+function createRow(entry, index) {
+  const changed = entry.changed === 'yes' || entry.check_url_change === 'yes';
+  const changedClass = changed ? 'bg-success bg-opacity-25' : '';
+  const btnClass = changed ? 'btn-success' : 'btn-outline-success';
+  const disabledAttr = changed ? 'disabled' : '';
+  const checkIcon =
+    entry.check_url_change === 'yes' ? '✅' :
+    entry.check_url_change === 'no' ? '❌' :
+    entry.check_url_change === 'error' ? '⚠️' : '⏳';
+
+  const tr = document.createElement('tr');
+  tr.innerHTML = `
+    <td class="${changedClass}">${index + 1}</td>
+    <td class="${changedClass}">${entry.mainDomain || '-'}</td>
+    <td class="${changedClass}"><a href="${entry.url}" class="text-info" target="_blank">${entry.url}</a></td>
+    <td class="${changedClass}">${entry.lang || ''}</td>
+    <td class="${changedClass}">${entry.emailLang || ''}</td>
+    <td class="${changedClass}">${entry.email}</td>
+    <td class="${changedClass}">${entry.sentAt ? new Date(entry.sentAt).toLocaleString() : ''}</td>
+    <td class="text-center ${changedClass}" id="check-cell-${entry.id}">${checkIcon}</td>
+    <td class="text-center d-flex gap-1 justify-content-center ${changedClass}">
+      <button class="btn btn-sm ${btnClass}" onclick="markChanged('${entry.id}', this)" title="Отметить как изменённую ссылку" ${disabledAttr}>
+        ✅
+      </button>
+      <button class="btn btn-sm btn-outline-warning" onclick="revert('${entry.id}', this)" title="Вернуть в список">
+        <i class="bi bi-arrow-counterclockwise"></i>
+      </button>
+    </td>
+  `;
+  return tr;
+}
+
+function fixBackLink() {
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+  if (!projectId) return;
+  
+  const backBtn = document.querySelector('a[href="email-builder.html"]');
+  if (backBtn) {
+    backBtn.href = `email-builder.html?projectId=${projectId}`;
+  }
+}
+
+
+
+
+window.onload = () => {
+  loadSent();
+  updateChangedCounter();
+  fixBackLink(); // 👈 подставим projectId в ссылку назад
+}
+
+  </script>
+
+
+</body>
+</html>

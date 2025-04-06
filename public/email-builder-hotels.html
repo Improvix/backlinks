@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Email Builder Hotels</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+  <style>
+    body { overflow-x: hidden; }
+    .preview-container { min-height: 400px; background: #222; padding: 20px; border-radius: 10px; overflow-y: auto; }
+    .sidebar { background: #333; padding: 20px; border-radius: 10px; }
+    textarea { min-height: 150px; }
+  </style>
+</head>
+<body class="bg-dark text-white p-4">
+
+<div class="container-fluid">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <h2 id="hotelTitle">🏨 Email Builder</h2>
+      </div>
+  <div class="row">
+
+    <!-- Sidebar -->
+    <div class="col-md-3 sidebar">
+      <h4 class="mb-4">Email settings</h4>
+
+      <button id="sentCounter" class="btn btn-outline-info mb-3" onclick="openSentPage()">Отправлено: 0</button>
+
+      <div class="mb-3">
+        <label>Email:</label>
+        <input type="text" id="emailDisplay" class="form-control mb-2" readonly onclick="copyField('emailDisplay')">
+      </div>
+
+      <div class="mb-3">
+        <label>Badge URL:</label>
+        <input type="text" id="hotelLinkDisplay" class="form-control mb-2" readonly>
+      </div>
+
+      <div class="mb-3">
+        <label>ID Hotel:</label>
+        <input type="text" id="hotelIdDisplay" class="form-control mb-2" readonly>
+      </div>
+
+      <div class="mb-3">
+        <label>Subject:</label>
+        <input type="text" id="subjectDisplay" class="form-control mb-2" readonly onclick="copyField('subjectDisplay')">
+      </div>
+
+      <div class="mb-3">
+        <label>Email Template:</label>
+        <select id="templateSelect" class="form-select" onchange="applyTemplate()"></select>
+      </div>
+
+      <button class="btn btn-outline-light w-100 mb-3" onclick="createTemplate()">➕ Create template</button>
+
+      <div class="d-grid gap-2">
+        <button class="btn btn-secondary" onclick="prevHotel()">⬅️ Back</button>
+        <button class="btn btn-secondary" onclick="nextHotel()">➡️ Next</button>
+        <button class="btn btn-success" onclick="markSent()">📩 Send</button>
+        <button class="btn btn-danger" onclick="markInvalid()">❌ Invalid</button>
+        <div id="remainingCounter" class="mt-3 text-light"></div>
+
+      </div>
+    </div>
+
+    <!-- Main Content -->
+    <div class="col-md-9">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+          <h5 id="previewTitle" class="mb-0">Превью письма для ...</h5>
+          <button
+            class="btn btn-sm btn-outline-light ms-3 p-2"
+            onclick="copyPreviewAsText()"
+            title="Скопировать превью"
+            style="line-height: 1; display: flex; align-items: center;"
+          >
+            💾 Copy
+          </button>
+        </div>
+      
+        <div id="previewContainer" class="preview-container"></div>
+      </div>
+      
+  </div>
+</div>
+
+<script>
+const urlParams = new URLSearchParams(window.location.search);
+const projectId = urlParams.get('projectId');
+
+let hotels = [];
+let currentHotelIndex = 0;
+let listingUrl = '';
+let templates = [];
+let currentHtml = '';
+
+async function fetchProjectAndHotels() {
+  const projectRes = await fetch(`/api/hotels-city/${projectId}`);
+  const project = await projectRes.json();
+  listingUrl = project.listingUrl.split('?')[0];
+
+  const hotelsRes = await fetch(`/api/hotels-city/${projectId}/hotels`);
+  hotels = await hotelsRes.json();
+  hotels = hotels.filter(hotel => hotel.status === 'done');
+
+  if (hotels.length === 0) {
+    alert('✅ Все письма отправлены!');
+    return;
+  }
+
+  showHotel(); // <<< СРАЗУ показать отель, даже если шаблонов нет
+
+  try {
+    const templatesRes = await fetch(`/api/hotels-city/${projectId}/templates`);
+    templates = await templatesRes.json();
+    fillTemplates();
+  } catch (error) {
+    console.warn('Нет шаблонов — можно создать новый');
+  }
+}
+
+
+function fillTemplates() {
+  const select = document.getElementById('templateSelect');
+  select.innerHTML = '<option value="">Выберите шаблон</option>';
+  templates.forEach((t, idx) => {
+    const option = document.createElement('option');
+    option.value = idx;
+    option.textContent = t.name;
+    select.appendChild(option);
+  });
+
+  // Попробовать восстановить выбранный шаблон
+  const savedTemplateIdx = localStorage.getItem(`selectedTemplate_${projectId}`);
+  if (savedTemplateIdx !== null && templates[savedTemplateIdx]) {
+    select.value = savedTemplateIdx;
+    applyTemplate();
+  } else if (templates.length > 0) {
+    select.value = 0;
+    applyTemplate();
+  }
+}
+
+function showHotel() {
+  const hotel = hotels[currentHotelIndex];
+  const fullHotelLink = `${listingUrl}?recommended_hotel_id=${hotel.hotelId}`;
+
+  document.getElementById('hotelTitle').textContent = `🏨 ${hotel.name}`;
+  document.getElementById('previewTitle').textContent = `Превью письма для "${hotel.name}"`;
+
+  document.getElementById('emailDisplay').value = hotel.email;
+  document.getElementById('hotelLinkDisplay').value = fullHotelLink;
+  document.getElementById('hotelIdDisplay').value = hotel.hotelId;
+
+  updatePreview();
+}
+
+function applyTemplate() {
+  const idx = document.getElementById('templateSelect').value;
+  if (idx === '') return;
+
+  const tpl = templates[idx];
+  document.getElementById('subjectDisplay').value = tpl.subject;
+  currentHtml = tpl.html;
+
+  // Сохраняем последний выбранный шаблон в localStorage
+  localStorage.setItem(`selectedTemplate_${projectId}`, idx);
+
+  updatePreview();
+}
+
+function updatePreview() {
+  const hotel = hotels[currentHotelIndex];
+
+  if (!currentHtml) return;
+
+  const replaced = currentHtml
+    .replace(/%name%/g, hotel.name)
+    .replace(/%hotel_id%/g, hotel.hotelId);
+
+  document.getElementById('previewContainer').innerHTML = replaced;
+}
+
+function copyField(id) {
+  const field = document.getElementById(id);
+  navigator.clipboard.writeText(field.value);
+}
+
+// Функция копирования превью
+function copyPreviewAsText() {
+  const range = document.createRange();
+  const output = document.getElementById('previewContainer'); // <<< ОБРАТИ ВНИМАНИЕ!
+  range.selectNode(output);
+
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  try {
+    const success = document.execCommand('copy');
+    if (success) {
+      showToast("Превью скопировано!");
+    } else {
+      alert("Не удалось скопировать. Попробуйте вручную.");
+    }
+  } catch (err) {
+    alert("Ошибка при копировании: " + err);
+  }
+
+  selection.removeAllRanges();
+}
+
+// Функция показа тоста
+function showToast(message) {
+  const toast = document.createElement('div');
+  toast.textContent = message;
+  toast.style.position = 'fixed';
+  toast.style.bottom = '20px';
+  toast.style.left = '50%';
+  toast.style.transform = 'translateX(-50%)';
+  toast.style.background = '#333';
+  toast.style.color = 'white';
+  toast.style.padding = '10px 20px';
+  toast.style.borderRadius = '8px';
+  toast.style.zIndex = '9999';
+  document.body.appendChild(toast);
+
+  setTimeout(() => {
+    toast.remove();
+  }, 2000);
+}
+
+
+function createTemplate() {
+  const hotel = hotels[currentHotelIndex];
+  window.location.href = `/builder/builder-hotels.html?projectId=${projectId}&hotelId=${hotel.hotelId}`;
+}
+
+async function markSent() {
+  const hotel = hotels[currentHotelIndex];
+  await fetch(`/api/hotels-city/${projectId}/hotels/${hotel.hotelId}/send`, { method: 'POST' });
+  nextHotel();
+}
+
+async function markInvalid() {
+  const hotel = hotels[currentHotelIndex];
+  await fetch(`/api/hotels-city/${projectId}/hotels/${hotel.hotelId}/mark-invalid`, { method: 'POST' });
+  nextHotel();
+}
+
+function prevHotel() {
+  if (currentHotelIndex > 0) {
+    currentHotelIndex--;
+    showHotel();
+  }
+}
+
+function nextHotel() {
+  if (currentHotelIndex < hotels.length - 1) {
+    currentHotelIndex++;
+    showHotel();
+  } else {
+    alert('✅ Все письма обработаны!');
+  }
+}
+
+fetchProjectAndHotels();
+
+async function updateSentCounter() {
+  const res = await fetch(`/api/hotels-city/${projectId}/sent`);
+  const sentHotels = await res.json();
+  document.getElementById('sentCounter').textContent = `Отправлено: ${sentHotels.length}`;
+}
+
+function openSentPage() {
+  window.location.href = `/sent-hotels.html?projectId=${projectId}`;
+}
+
+// Вызываем при загрузке страницы
+updateSentCounter();
+
+async function updateRemainingCounter() {
+  try {
+    const res = await fetch(`/api/hotels-city/${projectId}/remaining`);
+    const remaining = await res.json();
+    document.getElementById('remainingCounter').innerHTML = `Осталось отправить: <strong>${remaining.length}</strong> писем`;
+  } catch (error) {
+    console.error('Ошибка при загрузке оставшихся писем:', error);
+  }
+}
+
+updateRemainingCounter();
+
+
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

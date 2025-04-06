@@ -1,0 +1,717 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>Email Builder</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.4.1/papaparse.min.js"></script>
+
+  <style>
+    body {
+      padding: 2rem;
+      background-color: #121212;
+    }
+    .form-label {
+      margin-top: 0.5rem;
+    }
+    .preview-box {
+      background-color: #1e1e1e;
+      border: 1px solid #333;
+      border-radius: 8px;
+      padding: 1rem;
+      min-height: 400px;
+    }
+    .btn {
+      margin-right: 0.5rem;
+    }
+    input[readonly] {
+  cursor: pointer;
+}
+
+  </style>
+</head>
+<body>
+  <div class="container-fluid">
+    <nav class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <a href="index.html" class="btn btn-sm btn-outline-light me-2">🏠 Главная</a>
+      </div>
+      <div>
+        <span class="text-secondary small">Проект ID: <span id="projectIdDisplay">—</span></span>
+      </div>
+    </nav>
+    
+    <div class="row g-4">
+      <h3 class="text-light mb-0">Email Builder</h3>
+
+      <div class="col-md-4">
+         <!-- <div class="mb-3">
+          <label class="form-label">Загрузить CSV в Firebase</label>
+          <div class="row g-2">
+            <div class="col">
+              <input type="file" class="form-control" id="csvUpload" accept=".csv">
+            </div>
+            <div class="col-auto">
+              <button class="btn btn-primary" onclick="uploadCSVToFirebase()">Загрузить</button>
+            </div>
+          </div>
+        </div>
+      -->
+        <!-- Статистика -->
+        <div class="mb-3 d-flex gap-2 flex-wrap align-items-center">
+          <span id="newCount" class="btn btn-outline-light btn-sm disabled">
+            📨 Emails Left: ...
+          </span>
+          <a id="sentLink" class="btn btn-sm btn-success">
+            ✅ Sent: 0
+          </a>
+          <a id="invalidLink" class="btn btn-sm btn-warning">
+            ❗ Invalid: 0
+          </a>
+          
+        </div>
+        
+
+       
+        
+
+
+      <div class="p-3 mb-4 rounded border" style="background-color: #1b1b1b; border-color: #333;">
+        <h5 class="text-light mb-3">📌 Основные поля</h5>
+      
+        <div class="row mb-3">
+          <div class="col-6">
+            <label class="form-label">🌐 Backlink Language</label>
+            <input id="language" class="form-control" maxlength="2" oninput="onBacklinkLangChange()" />
+            <div class="invalid-feedback">
+              Введите 2 буквы языка, например: <strong>en</strong> или <strong>de</strong>
+            </div>
+            
+          </div>
+          <div class="col-6">
+            <label for="lang" class="form-label">✉️ Email Template</label>
+            <select id="lang" class="form-select">
+            </select>
+          </div>
+        </div>
+        <a id="createTemplateBtn" class="btn btn-sm btn-outline-light me-2">➕ Создать шаблон</a>
+
+        <div class="mb-3">
+          <label class="form-label">📝 Subject</label>
+          <input id="subject" class="form-control" readonly onclick="copySubject()" />
+        </div>
+      
+        <div class="mb-0">
+          <label class="form-label">📧 Email</label>
+          <input id="email" class="form-control" readonly onclick="copyEmail()" />
+        </div>
+      </div>
+      <div class="mb-4">
+        <div class="d-flex gap-2 flex-wrap align-items-center">
+          <button class="btn btn-secondary btn-sm" onclick="loadPrev()">←</button>
+          <button class="btn btn-secondary btn-sm" onclick="loadNext()">Next →</button>
+          <button class="btn btn-outline-success btn-sm" onclick="markAsSent()">✓ Отправлено</button>
+          <button class="btn btn-outline-warning btn-sm" onclick="markAsInvalid()">× Невалидный</button>
+        </div>
+      </div>
+        
+      <div class="accordion mb-3" id="advancedFields">
+        <div class="accordion-item bg-dark border-secondary">
+          <h2 class="accordion-header">
+            <button class="accordion-button bg-dark text-light collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#collapseFields" aria-expanded="false" aria-controls="collapseFields">
+              ⚙️ Дополнительные поля
+            </button>
+          </h2>
+          <div id="collapseFields" class="accordion-collapse collapse" data-bs-parent="#advancedFields">
+            <div class="accordion-body">
+              <div class="mb-3">
+                <label for="name" class="form-label">Name</label>
+                <input id="name" class="form-control" placeholder="e.g. Handelszeitung.ch" />
+              </div>
+              <div class="mb-3">
+                <label for="old_link" class="form-label">Old URL</label>
+                <input id="old_link" class="form-control" placeholder="e.g. http://old.com" />
+              </div>
+              <div class="mb-3">
+                <label for="new_link" class="form-label">New URL</label>
+                <input id="new_link" class="form-control" placeholder="e.g. https://new.com" />
+              </div>
+              <div class="mb-3">
+                <label for="articles" class="form-label">Article URLs</label>
+                <textarea id="articles" class="form-control" rows="4" placeholder="One URL per line"></textarea>
+              </div>
+              <button class="btn btn-outline-light btn-sm" onclick="updatePreview()">🔄 Preview</button>
+
+            </div>
+          </div>
+        </div>
+      </div>
+
+       
+        
+      </div>
+      <div class="col-md-8">
+        <div class="d-flex align-items-center mb-3">
+          <h3 class="text-light mb-0">Preview</h3>
+          <button
+            class="btn btn-sm btn-outline-light ms-3 p-2"
+            onclick="copyPreviewAsText()"
+            title="Скопировать превью"
+            style="line-height: 1; display: flex; align-items: center;"
+          >
+            💾 Copy
+          </button>
+        </div>
+        
+        
+        <div class="preview-box text-white" id="output"></div>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    let template = '';
+
+    async function fetchTemplate() {
+  const lang = document.getElementById('lang').value;
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+
+  if (!lang || !projectId) {
+    console.error('Нет выбранного языка или projectId');
+    return;
+  }
+
+  try {
+    // Загружаем все шаблоны проекта
+    const res = await fetch(`/api/project-templates/${projectId}`);
+    const templates = await res.json();
+
+    // Ищем выбранный шаблон
+    const selectedTemplate = templates.find(t => t.id === lang);
+
+    if (!selectedTemplate) {
+      document.getElementById('output').innerHTML = '<p>Шаблон не найден</p>';
+      window.template = '';
+      return;
+    }
+
+    // Присваиваем HTML шаблон
+    window.template = selectedTemplate.html;
+
+    // === ВОТ ЭТО ДОБАВЛЯЕМ: установка Subject ===
+    const subjectField = document.getElementById('subject');
+    if (subjectField && selectedTemplate.subject) {
+      subjectField.value = selectedTemplate.subject;
+    } else if (subjectField) {
+      subjectField.value = '';
+    }
+    // ==============================================
+
+    // Обновляем превью
+    updatePreview();
+  } catch (error) {
+    console.error('Ошибка загрузки шаблона:', error);
+    document.getElementById('output').innerHTML = '<p>Ошибка загрузки шаблона</p>';
+  }
+}
+
+
+
+
+
+function updatePreview() {
+  if (!window.template) {
+    console.warn('Шаблон не загружен');
+    document.getElementById('output').innerHTML = '<p>Шаблон не загружен</p>';
+    return;
+  }
+
+  const values = {
+    name: document.getElementById('name')?.value || '',
+    old_link: document.getElementById('old_link')?.value || '',
+    new_link: document.getElementById('new_link')?.value || '',
+    articles: (document.getElementById('articles')?.value || '')
+      .split('\n')
+      .filter(x => x.trim())
+      .map(link => `<li><a href="${link}">${link}</a></li>`)
+      .join('')
+  };
+
+  let result = window.template;
+  for (const key in values) {
+    const regex = new RegExp(`%${key}%`, 'g');
+    result = result.replace(regex, values[key]);
+  }
+
+  document.getElementById('output').innerHTML = result;
+}
+
+
+    async function downloadHTML() {
+      const lang = document.getElementById('lang').value;
+      const values = {
+        name: document.getElementById('name').value,
+        old_link: document.getElementById('old_link').value,
+        new_link: document.getElementById('new_link').value,
+        articles: document.getElementById('articles').value
+          .split('\n')
+          .filter(x => x.trim())
+          .map(link => `<li><a href="${link}">${link}</a></li>`)
+          .join('')
+      };
+
+      const res = await fetch('/api/generate', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ lang, values })
+      });
+
+      const html = await res.text();
+      const blob = new Blob([html], { type: 'text/html' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = 'email.html';
+      a.click();
+    }
+
+    function copyToClipboard() {
+      const html = document.getElementById('output').innerHTML;
+      const el = document.createElement('textarea');
+      el.value = html;
+      document.body.appendChild(el);
+      el.select();
+      document.execCommand('copy');
+      document.body.removeChild(el);
+      alert("Email HTML copied to clipboard!");
+    }
+
+    function onBacklinkLangChange() {
+  const input = document.getElementById('language');
+  if (input.readOnly) return;
+
+  let val = input.value.trim().toLowerCase();
+
+  // Приведение к нижнему регистру и удаление лишнего
+  if (val.length > 2) {
+    val = val.slice(0, 2);
+    input.value = val;
+  }
+
+  const sendBtn = document.querySelector('[onclick="markAsSent()"]');
+
+  // Автоматически ставим язык письма
+  autoSetEmailLanguage();
+
+  // Блокируем отправку, если поле пустое или некорректное
+  if (!val || val.length !== 2) {
+    sendBtn.disabled = true;
+    input.classList.add('is-invalid');
+  } else {
+    sendBtn.disabled = false;
+    input.classList.remove('is-invalid');
+  }
+}
+
+
+
+async function updateCounters() {
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+  if (!projectId) return;
+
+  // Отправленные
+  const sentRes = await fetch(`/api/project-backlinks/sent-count?projectId=${projectId}`);
+  const sentData = await sentRes.json();
+  const sentCount = sentData.count || 0;
+  document.getElementById('sentLink').textContent = `📬 Send: ${sentCount}`;
+
+  // Новые
+  const newRes = await fetch(`/api/project-backlinks/to-send-count?projectId=${projectId}`);
+  const newData = await newRes.json();
+  const newCount = newData.count || 0;
+  document.getElementById('newCount').textContent = `📨 Emails Left: ${newCount}`;
+
+  // Невалидные
+  const invalidRes = await fetch(`/api/project-backlinks/invalid-count?projectId=${projectId}`);
+  const invalidData = await invalidRes.json();
+  const invalidCount = invalidData.count || 0;
+  document.getElementById('invalidLink').textContent = `⚠️ Invalid: ${invalidCount}`;
+}
+
+async function loadTemplates() {
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+  if (!projectId) return;
+
+  const res = await fetch(`/api/project-templates/${projectId}`);
+  const templates = await res.json();
+
+  const langSelect = document.getElementById('lang');
+  langSelect.innerHTML = ''; // очищаем старые
+
+  // Если есть шаблоны
+  if (templates.length > 0) {
+    templates.forEach(template => {
+      const option = document.createElement('option');
+      option.value = template.id;
+      option.textContent = template.name;
+      langSelect.appendChild(option);
+    });
+
+    // Автоматически выбираем первый шаблон
+    langSelect.value = templates[0].id;
+    await fetchTemplate();
+  } else {
+    // Нет шаблонов — всё очищаем
+    window.template = '';
+    document.getElementById('output').innerHTML = '<p>Нет доступных шаблонов</p>';
+    const subjectField = document.getElementById('subject');
+    if (subjectField) subjectField.value = '';
+  }
+}
+
+
+
+window.onload = () => {
+  const params = new URLSearchParams(window.location.search);
+  const article = params.get('article');
+  const domain = params.get('domain');
+  const projectId = params.get('projectId');
+
+  if (projectId) {
+    document.getElementById('sentLink').href = `sent.html?projectId=${projectId}`;
+    document.getElementById('invalidLink').href = `invalid.html?projectId=${projectId}`;
+    document.getElementById('projectIdDisplay').textContent = projectId;
+  }
+
+  if (article) document.getElementById('articles').value = article;
+  if (domain) document.getElementById('name').value = domain;
+
+  document.getElementById('old_link').value = 'ellington-hotel.com';
+  document.getElementById('new_link').value = 'https://ellington-hotel.com-en.com/';
+
+  // Сначала загрузим все шаблоны
+  loadTemplates().then(() => {
+    fetchTemplate(); // После загрузки шаблонов — подтянуть превью
+    updateSubject(); // И обновить тему письма
+  });
+
+  loadFromFirebase();
+  updateCounters();
+};
+
+
+document.getElementById('lang').addEventListener('change', () => {
+  fetchTemplate();
+  updateSubject();
+});
+
+function updateSubject() {
+  const lang = document.getElementById('lang').value;
+  const subjectField = document.getElementById('subject');
+
+  if (lang === 'english') {
+    subjectField.value = "Action Required: Update Link to Ellington Hotel";
+  } else if (lang === 'german') {
+    subjectField.value = "Dringende Anfrage: Link zu unserer Hotel-Website aktualisieren";
+  } else {
+    subjectField.value = '';
+  }
+}
+
+function showToast(message = "Email скопирован!") {
+  const toast = document.getElementById('toast');
+  toast.textContent = message;
+  toast.style.display = 'block';
+  setTimeout(() => {
+    toast.style.display = 'none';
+  }, 2000); // скрыть через 2 секунды
+}
+
+  </script>
+
+ 
+  <script>
+    let emailData = [];
+
+    async function loadFromFirebase() {
+      const projectId = new URLSearchParams(window.location.search).get('projectId');
+const res = await fetch(`/api/project-backlinks-ready?projectId=${projectId}`);
+      emailData = await res.json();
+      currentIndex = 0;
+      loadNext();
+    }
+
+    async function markAsSent() {
+      if (currentIndex === 0 || currentIndex > emailData.length) {
+        alert("Нечего помечать как отправленное");
+        return;
+      }
+
+      const prevIndex = currentIndex - 1;
+      const entry = emailData[prevIndex];
+
+      const emailLang = document.getElementById('lang').value;
+      const backlinkLang = document.getElementById('language').value.trim().toLowerCase();
+
+
+      const projectId = new URLSearchParams(window.location.search).get('projectId');
+await fetch(`/api/project-backlinks/${projectId}/${entry.id}/send`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({
+    sentAt: new Date().toISOString(),
+    emailLang,
+    lang: backlinkLang
+  })
+});
+
+
+      emailData.splice(currentIndex - 1, 1);
+// НЕ меняем currentIndex — он уже сдвинут вперёд в loadNext
+currentIndex--; // 👈 только откатываем назад, потому что loadNext потом снова увеличит
+
+      if (emailData.length === 0) {
+        alert("Все письма отправлены!");
+        document.getElementById('articles').value = '';
+        document.getElementById('name').value = '';
+        document.getElementById('language').value = '';
+        document.getElementById('email').value = '';
+        document.getElementById('output').innerHTML = '';
+        return;
+      }
+
+      loadNext();
+      updateCounters();
+
+    }
+
+    async function markAsInvalid() {
+  if (currentIndex === 0 || currentIndex > emailData.length) {
+    alert("Нечего помечать как невалидное");
+    return;
+  }
+
+  const prevIndex = currentIndex - 1;
+  const entry = emailData[prevIndex];
+
+  const reason = prompt("Укажите причину, почему ссылка невалидна:");
+  if (!reason) return;
+
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+await fetch(`/api/project-backlinks/${projectId}/${entry.id}/invalidate`, {
+  method: 'POST',
+  headers: { 'Content-Type': 'application/json' },
+  body: JSON.stringify({ reason })
+});
+
+
+  emailData.splice(prevIndex, 1);
+  currentIndex = prevIndex;
+
+  if (emailData.length === 0) {
+    alert("Больше нет писем!");
+    document.getElementById('articles').value = '';
+    document.getElementById('name').value = '';
+    document.getElementById('language').value = '';
+    document.getElementById('email').value = '';
+    document.getElementById('output').innerHTML = '';
+    return;
+  }
+
+  loadNext();
+  updateCounters();
+
+}
+
+
+
+    let currentIndex = 0;
+    
+       
+    function extractDomain(url) {
+      try {
+        const u = new URL(url);
+        return u.hostname;
+      } catch (e) {
+        return '';
+      }
+    }
+
+    function autoSetEmailLanguage() {
+  const backlinkLang = document.getElementById('language').value.trim().toLowerCase();
+  const emailLangSelect = document.getElementById('lang');
+
+  if (backlinkLang === 'de') {
+    emailLangSelect.value = 'german';
+  } else if (backlinkLang === 'en') {
+    emailLangSelect.value = 'english';
+  } else {
+    emailLangSelect.value = 'english';
+  }
+
+  // Обновим шаблон и subject при автосмене
+  fetchTemplate();
+  updateSubject();
+}
+
+    
+    function loadNext() {
+      if (currentIndex >= emailData.length) {
+        alert("Больше нет писем!");
+        return;
+      }
+    
+      const { url, lang, email } = emailData[currentIndex++];
+      document.getElementById('articles').value = url ? url + '\n' : '';
+      document.getElementById('name').value = extractDomain(url);
+      document.getElementById('language').value = lang;
+      document.getElementById('language').readOnly = !!lang; // блокируем редактирование, если lang уже есть
+
+      autoSetEmailLanguage();
+      onBacklinkLangChange(); // 👈 Добавь эту строку
+      document.getElementById('email').value = email;
+    
+      updatePreview();
+    }
+    function loadPrev() {
+  if (currentIndex <= 1) {
+    alert("Это первое письмо!");
+    return;
+  }
+  currentIndex -= 2; // чтобы показать предыдущее
+  loadNext();        // потому что loadNext увеличит снова
+}
+
+    
+    function copyEmail() {
+      const email = document.getElementById('email');
+      email.select();
+      email.setSelectionRange(0, 99999);
+      document.execCommand('copy');
+      showToast("Email скопирован!");
+    }
+    function copySubject() {
+  const subject = document.getElementById('subject');
+  subject.select();
+  subject.setSelectionRange(0, 99999); // Для мобильных устройств
+  document.execCommand('copy');
+  showToast("Subject скопирован!");
+}
+
+
+    function copyPreviewAsText() {
+  const range = document.createRange();
+  const output = document.getElementById('output');
+  range.selectNode(output);
+
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+
+  try {
+    const success = document.execCommand('copy');
+    if (success) {
+      showToast("Превью скопировано!");
+    } else {
+      alert("Не удалось скопировать. Попробуйте вручную.");
+    }
+  } catch (err) {
+    alert("Ошибка при копировании: " + err);
+  }
+
+  selection.removeAllRanges();
+}
+    </script>
+      <script>
+        async function uploadCSVToFirebase() {
+          const fileInput = document.getElementById('csvUpload');
+          const file = fileInput.files[0];
+          if (!file) {
+            alert("Выберите CSV файл");
+            return;
+          }
+      
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: async function(results) {
+              const rawData = results.data;
+      
+              const sampleRow = rawData[0] || {};
+              const keys = Object.keys(sampleRow);
+      
+              const urlKey = keys.find(k => k.toLowerCase().includes('referr'));
+              const langKey = keys.find(k => k.toLowerCase().includes('lang'));
+              const emailKey = keys.find(k => k.toLowerCase().includes('email'));
+      
+              if (!urlKey || !emailKey) {
+                alert("Не удалось найти нужные поля (URL или Email). Проверь заголовки CSV.");
+                return;
+              }
+      
+              let successCount = 0;
+              const mainDomainKey = keys.find(k => k.toLowerCase().includes('maindomain'));
+
+if (!mainDomainKey) {
+  alert("В CSV не найдена колонка mainDomain");
+  return;
+}
+
+for (const row of rawData) {
+  const entry = {
+    url: row[urlKey]?.trim() || '',
+    lang: row[langKey]?.trim() || '',
+    email: row[emailKey]?.trim() || '',
+    mainDomain: row[mainDomainKey]?.trim() || '',
+    status: 'new'
+  };
+
+      
+                if (entry.url && entry.email) {
+                  await fetch('/api/backlinks', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(entry)
+                  });
+                  successCount++;
+                }
+              }
+      
+              alert(`Загружено в Firebase: ${successCount} записей`);
+              loadFromFirebase(); // обновим список
+            }
+          });
+        }
+
+        document.getElementById('createTemplateBtn').addEventListener('click', () => {
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+  if (!projectId) {
+    alert('Project ID не найден!');
+    return;
+  }
+  window.location.href = `/builder/builder.html?projectId=${projectId}`;
+});
+
+      </script>
+      <div id="toast" style="
+      position: fixed;
+      bottom: 20px;
+      right: 20px;
+      background-color: #28a745;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 5px;
+      display: none;
+      z-index: 1000;
+      font-weight: bold;
+    ">
+      Email скопирован!
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+
+</body>
+</html>

@@ -1,0 +1,74 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Выбери свой сервис</title>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <style>
+    body {
+      margin: 0;
+      height: 100vh;
+      background: #121212;
+      color: #fff;
+      font-family: 'Inter', sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      text-align: center;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .button-container {
+      display: flex;
+      gap: 2rem;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+
+    .service-button {
+      background: linear-gradient(135deg, #00c6ff, #0072ff);
+      border: none;
+      padding: 1.2rem 2rem;
+      border-radius: 12px;
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: white;
+      cursor: pointer;
+      transition: all 0.3s ease;
+      text-decoration: none;
+      min-width: 250px;
+    }
+
+    .service-button:hover {
+      transform: translateY(-5px);
+      box-shadow: 0 8px 20px rgba(0, 114, 255, 0.4);
+    }
+
+    .footer {
+      position: absolute;
+      bottom: 20px;
+      font-size: 0.9rem;
+      color: #666;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Pick what we're gonna do today
+  </h1>
+
+  <div class="button-container">
+    <a href="/hotels.html" class="service-button">Hotel Badge</a>
+    <a href="/blinks.html" class="service-button">Broken Backlinks</a>
+  </div>
+
+  
+
+</body>
+</html>

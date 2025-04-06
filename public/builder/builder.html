@@ -1,0 +1,419 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Email Template Builder</title>
+<style>
+  body {
+    font-family: Arial, sans-serif;
+    margin: 0;
+    padding: 0;
+    background: #f8f9fa;
+  }
+  .container {
+    display: flex;
+    min-height: 100vh;
+  }
+  .sidebar {
+    width: 300px;
+    background: #fff;
+    box-shadow: 2px 0 5px rgba(0,0,0,0.1);
+    padding: 20px;
+    box-sizing: border-box;
+  }
+  .preview {
+    flex: 1;
+    padding: 20px;
+    overflow-y: auto;
+    background: #f8f9fa;
+  }
+  .controls button, .controls select, .controls input[type="color"] {
+    display: block;
+    width: 100%;
+    margin-bottom: 15px;
+    padding: 10px;
+    font-size: 16px;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+    background: #fff;
+    transition: background 0.3s, box-shadow 0.3s;
+  }
+  .controls button:hover, .controls select:hover, .controls input[type="color"]:hover {
+    background: #e9ecef;
+    box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+  }
+  .email-editor {
+    background: #fff;
+    padding: 20px;
+    border-radius: 10px;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.2);
+    max-width: 900px;
+    margin: auto;
+    box-sizing: border-box;
+  }
+  .email-editor img {
+    max-width: 200px;
+  }
+  [contenteditable] {
+    outline: 2px dashed #ddd;
+    padding: 5px;
+  }
+  .controls p {
+  margin: 20px 0 10px;
+  font-weight: bold;
+  font-size: 18px;
+}
+
+.controls .button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin-bottom: 20px;
+}
+
+.controls .button-group button {
+  flex: 1 1 45%;
+  min-width: 90px;
+  padding: 6px 8px;
+  font-size: 14px;
+  border-radius: 6px;
+  margin: 3px;
+}
+
+
+.controls .action-buttons button {
+  margin-top: 10px;
+}
+.controls .button-group button.active {
+  background-color: #007bff;
+  color: #fff;
+}
+
+.controls .action-buttons button i {
+  margin-right: 5px;
+}
+
+
+</style>
+</head>
+<body>
+
+<div class="container">
+  <div class="sidebar">
+    <div class="controls">
+      <p>Выбери язык</p>
+      <div class="button-group">
+        <button onclick="loadTemplate('english')">English</button>
+        <button onclick="loadTemplate('german')">Deutsch</button>
+      </div>
+    
+      <p>Выбери футер</p>
+      <div id="footerButtons" class="button-group">
+        <button onclick="changeFooter(1); setActiveFooterButton(1)">Footer 1</button>
+        <button onclick="changeFooter(2); setActiveFooterButton(2)">Footer 2</button>
+        <button onclick="changeFooter(3); setActiveFooterButton(3)">Footer 3</button>
+        <button onclick="changeFooter(4); setActiveFooterButton(4)">Footer 4</button>
+      </div>
+      
+    
+      <p>Выбери шрифт</p>
+      <div id="fontButtons" class="button-group">
+        <button onclick="changeFont('Arial'); setActiveFontButton('Arial')">Arial</button>
+        <button onclick="changeFont('Times New Roman'); setActiveFontButton('Times')">Times</button>
+        <button onclick="changeFont('Verdana'); setActiveFontButton('Verdana')">Verdana</button>
+        <button onclick="changeFont('Georgia'); setActiveFontButton('Georgia')">Georgia</button>
+        <button onclick="changeFont('Trebuchet MS'); setActiveFontButton('Trebuchet')">Trebuchet</button>
+        <button onclick="changeFont('Courier New'); setActiveFontButton('Courier')">Courier</button>
+      </div>
+      
+      <p>Размер шрифта</p>
+      <input type="range" id="fontSizeRange" min="12" max="24" value="14" oninput="changeFontSize(this.value)">
+      <span id="fontSizeValue">14px</span>
+            
+    
+      <p>Выбери цвет ссылок</p>
+      <div id="presetColors" style="display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 15px;"></div>
+      <input type="color" id="linkColor" value="#ae1a41" onchange="changeLinkColor()">
+    
+      <div class="action-buttons">
+        <button onclick="toggleListType()">Toggle List Type</button>
+        <button onclick="changeLogo()">Change Logo</button>
+        <button onclick="resetTemplate()">Reset</button>
+        <button onclick="downloadHTML()"><i>💾</i>Download HTML</button>
+        <button id="saveTemplateBtn" style="margin-top: 20px;">💾 Добавить шаблон к проекту</button>
+
+      </div>
+    </div>
+  </div>  
+  <div class="preview">
+    <div class="email-editor" id="emailEditor" contenteditable="true">
+      <!-- Email template will be loaded here -->
+    </div>
+  </div>
+</div>
+
+<script>
+let originalTemplates = {};
+let currentTemplate = '';
+
+async function loadTemplate(language) {
+  const res = await fetch(language === 'english' ? 'english.html' : 'german.html');
+  const html = await res.text();
+  document.getElementById('emailEditor').innerHTML = extractBody(html);
+  originalTemplates[language] = extractBody(html);
+  currentTemplate = language;
+}
+
+function extractBody(html) {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, 'text/html');
+  return doc.querySelector('body').innerHTML;
+}
+
+function changeFooter(choice) {
+  const footer = document.querySelector('.footer');
+  if (!footer) {
+    console.error('Footer block not found!');
+    return;
+  }
+
+  const footers = {
+    1: `
+      <p><strong>ELLINGTON HOTEL BERLIN</strong><br>
+      Nürnberger Straße 50-55, Berlin, Germany<br/>
+      Phone: +49 30 683150 | 
+      Email: <a href="mailto:info@ellington-hotel.com" style="text-decoration: none;">info@ellington-hotel.com</a></p>
+      <p>
+      <a href="https://ellington-hotel.com-en.com/en/">Website</a> |
+      <a href="https://ellington-hotel.com-en.com/en/zimmer-suiten/">Rooms</a> |
+      <a href="https://ellington-hotel.com-en.com/en/meetings-events/">Events</a>
+      </p>
+      <p>© 2007-2025 ELLINGTON HOTEL BERLIN</p>
+    `,
+    2: `
+      <p><strong>ELLINGTON HOTEL BERLIN</strong><br>
+      Berlin, Germany<br/>
+      Phone: +49 30 683150</p>
+      <p><a href="https://ellington-hotel.com-en.com/en/">Visit our website</a></p>
+      <p>All rights reserved © 2025</p>
+    `,
+    3: `
+      <p><strong>Contact us</strong><br>
+      Email: <a href="mailto:support@ellington-hotel.com">support@ellington-hotel.com</a><br>
+      Phone: +49 30 683150</p>
+      <p><a href="https://ellington-hotel.com-en.com/en/privacy-policy/">Privacy Policy</a> | <a href="https://ellington-hotel.com-en.com/en/terms/">Terms of Service</a></p>
+    `,
+    4: `
+      <p>© 2025 Ellington Hotel Berlin. All rights reserved.</p>
+    `
+  };
+
+  const newFooter = document.createElement('div');
+  newFooter.className = 'footer';
+  newFooter.innerHTML = footers[choice];
+
+  // Стиль для всех футеров
+  newFooter.style.marginTop = '40px';
+  newFooter.style.textAlign = 'center';
+  newFooter.style.padding = '20px';
+  newFooter.style.borderRadius = '10px';
+  newFooter.style.boxShadow = '0 2px 5px rgba(0, 0, 0, 0.1)';
+  newFooter.style.borderTop = '1px solid #ddd';
+
+  // Индивидуальный стиль каждого футера
+  if (choice == 1) {
+    newFooter.style.backgroundColor = '#ffffff';
+    newFooter.style.color = '#555';
+    newFooter.style.fontSize = '14px';
+    newFooter.querySelectorAll('a').forEach(a => {
+      a.style.color = '#007bff';
+    });
+  }
+  if (choice == 2) {
+    newFooter.style.backgroundColor = '#f1f1f1';
+    newFooter.style.color = '#333';
+    newFooter.style.fontSize = '15px';
+    newFooter.querySelectorAll('a').forEach(a => {
+      a.style.color = '#ffc107'; // золотистый
+    });
+  }
+  if (choice == 3) {
+    newFooter.style.backgroundColor = '#383b3d';
+    newFooter.style.color = '#ffffff';
+    newFooter.style.fontSize = '16px';
+    newFooter.querySelectorAll('a').forEach(a => {
+      a.style.color = '#ffcc00'; // желтый
+    });
+  }
+  if (choice == 4) {
+    newFooter.style.backgroundColor = '#ffffff';
+    newFooter.style.color = '#777';
+    newFooter.style.fontSize = '12px';
+    newFooter.querySelectorAll('a').forEach(a => {
+      a.style.color = '#007bff';
+    });
+  }
+
+  footer.replaceWith(newFooter);
+}
+
+
+function changeFont(font) {
+  document.getElementById('emailEditor').style.fontFamily = font;
+}
+
+
+function changeLinkColor() {
+  const color = document.getElementById('linkColor').value;
+  document.querySelectorAll('#emailEditor a').forEach(a => a.style.color = color);
+}
+
+function toggleListType() {
+  const list = document.querySelector('#emailEditor ul, #emailEditor ol');
+  if (list) {
+    const newList = document.createElement(list.tagName === 'UL' ? 'ol' : 'ul');
+    newList.innerHTML = list.innerHTML;
+    list.replaceWith(newList);
+  }
+}
+
+function changeLogo() {
+  const url = prompt("Enter new logo URL:");
+  if (url) {
+    const img = document.querySelector('#emailEditor img');
+    if (img) img.src = url;
+  }
+}
+
+function resetTemplate() {
+  if (currentTemplate) {
+    document.getElementById('emailEditor').innerHTML = originalTemplates[currentTemplate];
+  }
+}
+
+function downloadHTML() {
+  const content = document.getElementById('emailEditor').innerHTML;
+  const html = `<!DOCTYPE html><html><head><meta charset='utf-8'><title>Email</title></head><body>${content}</body></html>`;
+  const blob = new Blob([html], {type: 'text/html'});
+  const link = document.createElement('a');
+  link.href = URL.createObjectURL(blob);
+  link.download = 'email-template.html';
+  link.click();
+}
+// Для подсветки активной кнопки футеров
+function setActiveFooterButton(index) {
+  const buttons = document.querySelectorAll('#footerButtons button');
+  buttons.forEach((btn, i) => {
+    btn.classList.toggle('active', i === index - 1);
+  });
+}
+
+// Для подсветки активной кнопки шрифтов
+function setActiveFontButton(font) {
+  const buttons = document.querySelectorAll('#fontButtons button');
+  buttons.forEach((btn) => {
+    btn.classList.toggle('active', btn.textContent === font || btn.textContent === font.split(' ')[0]);
+  });
+}
+function changeFontSize(size) {
+  const editor = document.getElementById('emailEditor');
+  const tags = editor.querySelectorAll('p, a, li, span, h1, h2, h3, h4, h5, h6, td, div');
+
+  tags.forEach(el => {
+    el.style.fontSize = size + 'px';
+  });
+
+  document.getElementById('fontSizeValue').textContent = size + 'px';
+}
+window.addEventListener('DOMContentLoaded', () => {
+  // Загрузить английский шаблон
+  loadTemplate('english');
+
+  // Установить шрифт Arial
+  changeFont('Arial');
+  setActiveFontButton('Arial');
+
+  // Установить футер №1
+  changeFooter(1);
+  setActiveFooterButton(1);
+
+  // Установить размер шрифта 14px
+  changeFontSize(14);
+});
+
+
+
+
+// Цвета по умолчанию
+const colors = [
+  '#007bff', '#dc3545', '#fd7e14', '#ffc107', '#28a745',
+  '#000000', '#ffffff', '#6f42c1', '#343a40', '#17a2b8'
+];
+
+const presetContainer = document.getElementById('presetColors');
+colors.forEach(color => {
+  const btn = document.createElement('div');
+  btn.style.background = color;
+  btn.style.width = '30px';
+  btn.style.height = '30px';
+  btn.style.borderRadius = '50%';
+  btn.style.cursor = 'pointer';
+  btn.style.border = '1px solid #ccc';
+  btn.addEventListener('click', () => {
+    document.getElementById('linkColor').value = color;
+    changeLinkColor();
+  });
+  presetContainer.appendChild(btn);
+});
+document.getElementById('saveTemplateBtn').addEventListener('click', async () => {
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+  if (!projectId) {
+    alert('Нет projectId');
+    return;
+  }
+
+  const name = prompt('Введите название шаблона:');
+  if (!name) return;
+
+  const subject = prompt('Введите 📝 Subject письма:');
+  if (subject === null) return; // если нажал Отмена
+
+  // Проверяем, нет ли уже шаблона с таким названием
+  const res = await fetch(`/api/project-templates/${projectId}`);
+  const templates = await res.json();
+  const exists = templates.find(t => t.name.toLowerCase() === name.toLowerCase());
+
+  if (exists) {
+    alert('Шаблон с таким названием уже существует!');
+    return;
+  }
+
+  const htmlContent = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Email</title>
+</head>
+<body>
+${document.getElementById('emailEditor').innerHTML}
+</body>
+</html>
+`;
+
+  await fetch(`/api/project-templates/${projectId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, subject, html: htmlContent })
+  });
+
+  alert('Шаблон успешно сохранён!');
+  window.location.href = `/email-builder.html?projectId=${projectId}`;
+});
+
+
+</script>
+
+</body>
+</html>

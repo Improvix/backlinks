@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="ru" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Проекты по отелям</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-white p-4">
+
+<div class="container">
+  <div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>🏨 Hotel projects</h2>
+    <a href="index.html" class="btn btn-sm btn-outline-light">🏠 Home</a>
+  </div>
+
+  <form id="createProjectForm" class="row g-3 mb-4">
+    <div class="col-md-5">
+      <input type="text" class="form-control" id="cityInput" placeholder="City name" required>
+    </div>
+    <div class="col-md-5">
+      <input type="url" class="form-control" id="listingUrlInput" placeholder="URL to listing" required>
+    </div>
+    <div class="col-md-2 d-grid">
+      <button type="submit" class="btn btn-success">➕ Create project</button>
+    </div>
+  </form>
+
+  <table class="table table-dark table-striped align-middle" id="projectsTable">
+    <thead>
+      <tr>
+        <th>🏙 City</th>
+        <th>🔗 Listing</th>
+        <th>🏨 Hotels</th>
+        <th>📧 Sent Emails</th>
+        <th>⚙️ Action</th>
+        <th>📅 Date</th>
+
+      </tr>
+    </thead>
+    <tbody>
+      <!-- Здесь будут проекты -->
+    </tbody>
+  </table>
+</div>
+
+<script>
+  let projects = [];
+
+  async function fetchProjects() {
+    const res = await fetch('/api/hotels-city');
+    projects = await res.json();
+    renderProjects();
+  }
+
+ 
+  async function createProject(e) {
+    e.preventDefault();
+    const city = document.getElementById('cityInput').value.trim();
+    const listingUrl = document.getElementById('listingUrlInput').value.trim();
+
+    if (!city || !listingUrl) return alert('Заполни все поля!');
+
+    const res = await fetch('/api/hotels-city/create', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ city, listingUrl })
+    });
+
+    if (res.ok) {
+      document.getElementById('createProjectForm').reset();
+      await fetchProjects();
+    } else {
+      alert('Ошибка при создании проекта');
+    }
+  }
+  async function fetchSentCount(projectId) {
+  try {
+    const res = await fetch(`/api/hotels-city/${projectId}/sent`);
+    const data = await res.json();
+    return data.length;
+  } catch (error) {
+    console.error('Ошибка при получении отправленных писем:', error);
+    return 0;
+  }
+}
+
+async function renderProjects() {
+  const tbody = document.querySelector('#projectsTable tbody'); // ← ПРАВИЛЬНО
+  tbody.innerHTML = '';
+
+  for (const project of projects) {
+    const tr = document.createElement('tr');
+    const sentCount = await fetchSentCount(project.id);
+
+    tr.innerHTML = `
+      <td>${project.city}</td>
+      <td><a href="${project.listingUrl}" target="_blank" class="text-info">Open listing</a></td>
+      <td>${project.hotelsCount || 0}</td>
+      <td>
+        <a href="sent-hotels.html?projectId=${project.id}" class="btn btn-sm btn-outline-info">
+          📧 ${sentCount}
+        </a>
+      </td>
+      <td class="d-flex gap-2">
+        <button class="btn btn-sm btn-outline-primary" onclick="parseHotels('${project.id}', this)">🔍 Hotels parsing</button>
+        <a href="research-hotels.html?projectId=${project.id}" class="btn btn-sm btn-outline-success">🚀 Research</a>
+      </td>
+            <td>${new Date(project.createdAt).toLocaleDateString()}</td>
+
+    `;
+
+    tbody.appendChild(tr); // ← сюда добавляем строку!
+  }
+}
+
+
+
+  async function parseHotels(projectId, button) {
+    if (!confirm('Точно спарсить отели для этого проекта?')) return;
+
+    button.disabled = true;
+    button.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Парсинг...';
+
+    const res = await fetch(`/api/hotels-city/${projectId}/parse`, { method: 'POST' });
+
+    if (res.ok) {
+      alert('Отели успешно спарсены!');
+      await fetchProjects();
+    } else {
+      alert('Ошибка при парсинге отелей');
+    }
+
+    button.disabled = false;
+    button.innerHTML = '🔍 Спарсить отели';
+  }
+
+  document.getElementById('createProjectForm').addEventListener('submit', createProject);
+
+  fetchProjects();
+</script>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

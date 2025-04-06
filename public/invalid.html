@@ -1,0 +1,91 @@
+<!DOCTYPE html>
+<html lang="en" data-bs-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <title>Отправленные письма</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <link
+    href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css"
+    rel="stylesheet"
+  >
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+
+</head>
+<body class="bg-dark text-white p-4">
+  <div class="container">
+    <h2 class="mb-4">📬 Отправленные письма</h2>
+    <table class="table table-dark table-bordered">
+      <thead>
+        <tr>
+          <th>#</th>
+          <th>Проект</th>
+          <th>URL</th>
+          <th>Язык сайта</th>
+          <th>Язык письма</th>
+          <th>Email</th>
+          <th>Reason</th>
+          <th>Action</th>
+        </tr>
+      </thead>
+      <tbody id="sentTable">
+        <tr><td colspan="4">Загрузка...</td></tr>
+      </tbody>
+    </table>
+    <a href="email-builder.html" class="btn btn-outline-light mt-3">← Назад к письмам</a>
+  </div>
+
+  <script>
+async function loadInvalid() {
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+  const res = await fetch(`/api/project-backlinks/invalid?projectId=${projectId}`);
+  const data = await res.json();
+
+  const tbody = document.getElementById('sentTable');
+  tbody.innerHTML = '';
+
+  if (data.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4">Нет невалидных писем</td></tr>';
+    return;
+  }
+
+  data.forEach((entry, i) => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${i + 1}</td>
+      <td>${entry.mainDomain || '-'}</td>
+      <td><a href="${entry.url}" class="text-info" target="_blank">${entry.url}</a></td>
+      <td>${entry.lang || ''}</td>
+      <td>${entry.emailLang || ''}</td>
+      <td>${entry.email}</td>
+      <td>${entry.reason || ''}</td>
+      <td class="text-center">
+        <button class="btn btn-sm btn-outline-warning" onclick="revert('${entry.id}', this)" title="Вернуть в список">
+          <i class="bi bi-arrow-counterclockwise"></i>
+        </button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  });
+}
+
+async function revert(id, button) {
+  const projectId = new URLSearchParams(window.location.search).get('projectId');
+  if (!confirm('Вернуть письмо в статус "new"?')) return;
+
+  const res = await fetch(`/api/project-backlinks/${projectId}/${id}/revert`, { method: 'POST' });
+  if (res.ok) {
+    const row = button.closest('tr');
+    row.remove();
+  } else {
+    alert('Ошибка при возврате письма.');
+  }
+}
+
+
+
+    window.onload = loadInvalid;
+  </script>
+
+
+</body>
+</html>
