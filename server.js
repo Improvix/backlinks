@@ -40,7 +40,7 @@ app.post('/api/generate', (req, res) => {
   res.send(template);
 });
 const admin = require('firebase-admin');
-const serviceAccount = require('./backlinks-b4154-firebase-adminsdk-fbsvc-b55fa81dba.json');
+const serviceAccount = JSON.parse(process.env.FIREBASE_SERVICE_ACCOUNT);
 
 admin.initializeApp({
   credential: admin.credential.cert(serviceAccount)
