@@ -1113,9 +1113,10 @@ app.post('/fetch-refdomains', async (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`✅ Сервер запущен: http://localhost:${PORT}`);
+app.listen(PORT, '0.0.0.0', () => {
+  console.log(`✅ Сервер запущен: http://0.0.0.0:${PORT}`);
 });
+
 
 
 const axios = require('axios');
