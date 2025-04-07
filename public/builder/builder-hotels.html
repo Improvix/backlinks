@@ -104,8 +104,7 @@
     <div class="controls">
       <p>Выбери язык</p>
       <div class="button-group">
-        <button onclick="loadTemplate('english')">English</button>
-        <button onclick="loadTemplate('german')">Deutsch</button>
+        <button onclick="loadTemplate()">Main template</button>
       </div>
     
       <p>Выбери футер</p>
@@ -157,13 +156,14 @@
 let originalTemplates = {};
 let currentTemplate = '';
 
-async function loadTemplate(language) {
-  const res = await fetch(language === 'english' ? 'english.html' : 'german.html');
+async function loadTemplate() {
+  const res = await fetch('main-template.html');
   const html = await res.text();
   document.getElementById('emailEditor').innerHTML = extractBody(html);
-  originalTemplates[language] = extractBody(html);
-  currentTemplate = language;
+  originalTemplates['main'] = extractBody(html);
+  currentTemplate = 'main';
 }
+
 
 function extractBody(html) {
   const parser = new DOMParser();
