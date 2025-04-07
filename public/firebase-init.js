@@ -8,12 +8,32 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
-const currentPath = window.location.pathname; // 🆕 Добавили текущий путь
+const currentPath = window.location.pathname;
+
+// Основная логика после авторизации
+function afterAuth(user, userData) {
+  document.body.style.display = 'block';
+
+  if (currentPath !== '/index.html') {
+    const isAdmin = userData.type === 'admin';
+
+    if (typeof loadProjects === 'function') {
+      loadProjects(user.uid, isAdmin);
+    }
+    if (typeof loadAllUsers === 'function') {
+      loadAllUsers();
+    }
+
+    if (document.getElementById('logoutBtn')) {
+      document.getElementById('logoutBtn').innerText = user.displayName || 'Выйти';
+    }
+  }
+}
 
 // Проверка авторизации и наличия в базе
 auth.onAuthStateChanged(async (user) => {
   if (!user) {
-    if (currentPath !== '/index.html') { // 🛡️ Только если НЕ на index.html, редиректим
+    if (currentPath !== '/index.html') {
       window.location.href = '/index.html';
     }
     return;
@@ -23,7 +43,6 @@ auth.onAuthStateChanged(async (user) => {
     const userDoc = await db.collection('users').doc(user.uid).get();
     
     if (!userDoc.exists) {
-      // ❌ Пользователь НЕ найден в базе — выкидываем
       alert('⛔️ Доступ запрещен. Обратитесь к администратору.');
       await auth.signOut();
       if (currentPath !== '/index.html') {
@@ -34,7 +53,6 @@ auth.onAuthStateChanged(async (user) => {
 
     const userData = userDoc.data();
     if (userData.type !== 'admin' && userData.type !== 'user') {
-      // ❌ Если статус не admin и не user — тоже выкидываем
       alert('⛔️ Доступ запрещен. Обратитесь к администратору.');
       await auth.signOut();
       if (currentPath !== '/index.html') {
@@ -43,23 +61,15 @@ auth.onAuthStateChanged(async (user) => {
       return;
     }
 
-    // ✅ Всё ок, пускаем дальше
-    document.body.style.display = 'block';
-    // 🆕 Если мы НЕ на главной (index.html) — грузим проекты
-if (currentPath !== '/index.html') {
-  const isAdmin = userData.type === 'admin';
-  
-  if (typeof loadProjects === 'function') {
-    loadProjects(user.uid, isAdmin);
-  }
-  if (typeof loadAllUsers === 'function') {
-    loadAllUsers();
-  }
-
-  if (document.getElementById('logoutBtn')) {
-    document.getElementById('logoutBtn').innerText = user.displayName || 'Выйти';
-  }
-} // Показываем страницу только после проверки
+    // 🆕 Ждём загрузки страницы если нужно
+    if (document.readyState === 'loading') {
+      document.addEventListener('DOMContentLoaded', () => {
+        afterAuth(user, userData);
+      });
+    } else {
+      afterAuth(user, userData);
+    }
+    
   } catch (e) {
     console.error('Ошибка проверки пользователя:', e);
     alert('Ошибка проверки пользователя.');
