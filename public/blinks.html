@@ -126,26 +126,7 @@
   </div>
 
   <script>
-    const firebaseConfig = {
-      apiKey: "AIzaSyAOB-rSJQ4XDJyIQu6Totoqnoz6O2CkNP8",
-      authDomain: "backlinks-b4154.firebaseapp.com",
-      projectId: "backlinks-b4154",
-    };
-
-    firebase.initializeApp(firebaseConfig);
-    const auth = firebase.auth();
-    document.getElementById('logoutBtn').onclick = async () => {
-  try {
-    await auth.signOut();
-    alert('Вы вышли из аккаунта');
-    location.reload(); // перезагрузим страницу для входа другим пользователем
-  } catch (e) {
-    console.error('Ошибка выхода:', e);
-    alert('Ошибка выхода из аккаунта');
-  }
-};
-
-   
+    
 
     const statusMap = {
   isSubdomainAndArchivarix: { text: "Subdomain +archivarix", color: "bg-purple text-white" },
