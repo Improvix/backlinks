@@ -144,46 +144,7 @@
   }
 };
 
-auth.onAuthStateChanged(async (user) => {
-  const loginScreen = document.getElementById('loginScreen');
-  const app = document.getElementById('app');
-
-  if (!user) {
-    loginScreen.style.display = 'block';
-    app.style.display = 'none';
-  } else {
-    loginScreen.style.display = 'none';
-    app.style.display = 'block';
-
-    document.getElementById('logoutBtn').innerText = user.displayName || 'Выйти';
-
-    // Проверяем и создаём пользователя в Firestore, если его нет
-    const userDocRef = firebase.firestore().collection('users').doc(user.uid);
-    const doc = await userDocRef.get();
-    if (!doc.exists) {
-      await userDocRef.set({
-        email: user.email,
-        type: 'user' // по умолчанию обычный юзер
-      });
-    }
-
-    // 🆕 Читаем роль пользователя
-    const userData = (await userDocRef.get()).data();
-    const isAdmin = userData?.type === 'admin';
-
-    // Загружаем проекты
-    loadProjects(user.uid, isAdmin);
-    await loadAllUsers();
-  }
-
-  document.body.classList.remove('loading');
-  document.body.classList.add('loaded');
-});
-
-
-
-
-    
+   
 
     const statusMap = {
   isSubdomainAndArchivarix: { text: "Subdomain +archivarix", color: "bg-purple text-white" },
