@@ -13,10 +13,7 @@
 
 </head>
 <body class="bg-dark text-light p-4 loading">
-    <div id="loginScreen" class="text-center mt-5">
-        <h3>🔐 Авторизуйтесь через Google</h3>
-        <button id="loginBtn" class="btn btn-primary mt-3">Увійти через Google</button>
-      </div>
+    
       <div id="app" style="display: none;">    
   <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -135,16 +132,6 @@
 
     firebase.initializeApp(firebaseConfig);
     const auth = firebase.auth();
-    document.getElementById('loginBtn').onclick = async () => {
-  const provider = new firebase.auth.GoogleAuthProvider();
-  try {
-    await auth.signInWithPopup(provider);
-  } catch (e) {
-    console.error('Помилка входу:', e);
-    alert('Не вдалося авторизуватись');
-  }
-};
-
     document.getElementById('logoutBtn').onclick = async () => {
   try {
     await auth.signOut();

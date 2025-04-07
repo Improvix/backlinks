@@ -7,6 +7,10 @@
   <link rel="icon" href="favicon.png" type="image/x-icon" />
 
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+  <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-auth-compat.js"></script>
+<script src="/firebase-init.js"></script>
+
   <style>
     body {
       margin: 0;
@@ -61,16 +65,44 @@
   </style>
 </head>
 <body>
-
-  <h1>Pick what we're gonna do today
-  </h1>
-
-  <div class="button-container">
-    <a href="/hotels.html" class="service-button">Hotel Badge</a>
-    <a href="/blinks.html" class="service-button">Broken Backlinks</a>
+  <div id="loginScreen" style="display:none;">
+    <h2>🔐 Авторизация через Google</h2>
+    <button id="loginBtn" class="service-button" style="margin-top: 20px;">Войти через Google</button>
   </div>
-
   
-
+  <div id="mainApp" style="display:none;">
+    <h1>Pick what we're gonna do today</h1>
+  
+    <div class="button-container">
+      <a href="/hotels.html" class="service-button">Hotel Badge</a>
+      <a href="/blinks.html" class="service-button">Broken Backlinks</a>
+    </div>
+  </div>
+  
+  <script>
+    auth.onAuthStateChanged(user => {
+      const loginScreen = document.getElementById('loginScreen');
+      const mainApp = document.getElementById('mainApp');
+    
+      if (user) {
+        loginScreen.style.display = 'none';
+        mainApp.style.display = 'block';
+      } else {
+        loginScreen.style.display = 'block';
+        mainApp.style.display = 'none';
+      }
+    });
+    
+    document.getElementById('loginBtn').onclick = async () => {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      try {
+        await auth.signInWithPopup(provider);
+      } catch (e) {
+        console.error('Ошибка входа:', e);
+        alert('Не удалось войти через Google');
+      }
+    };
+    </script>
+    
 </body>
 </html>
