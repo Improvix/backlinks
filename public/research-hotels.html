@@ -32,6 +32,8 @@
     <div class="col-12 d-flex gap-2">
       <button type="submit" class="btn btn-success">✅ Ready</button>
       <button type="button" class="btn btn-danger" onclick="markInvalid()">❌ Invalid</button>
+      <button type="button" class="btn btn-warning" onclick="searchInGoogle()">🔎 Search in Google</button>
+
     </div>
   </form>
 
@@ -118,7 +120,17 @@
   document.getElementById('researchForm').addEventListener('submit', submitForm);
 
   fetchHotels();
+
+  function searchInGoogle() {
+  const hotel = hotels[currentHotelIndex];
+  const query = encodeURIComponent(hotel.name || '');
+  const url = `https://www.google.com/search?q=${query}`;
+  window.open(url, '_blank');
+}
+
 </script>
+
+
 
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
 </body>
