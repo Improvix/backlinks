@@ -44,7 +44,22 @@ auth.onAuthStateChanged(async (user) => {
     }
 
     // ✅ Всё ок, пускаем дальше
-    document.body.style.display = 'block'; // Показываем страницу только после проверки
+    document.body.style.display = 'block';
+    // 🆕 Если мы НЕ на главной (index.html) — грузим проекты
+if (currentPath !== '/index.html') {
+  const isAdmin = userData.type === 'admin';
+  
+  if (typeof loadProjects === 'function') {
+    loadProjects(user.uid, isAdmin);
+  }
+  if (typeof loadAllUsers === 'function') {
+    loadAllUsers();
+  }
+
+  if (document.getElementById('logoutBtn')) {
+    document.getElementById('logoutBtn').innerText = user.displayName || 'Выйти';
+  }
+} // Показываем страницу только после проверки
   } catch (e) {
     console.error('Ошибка проверки пользователя:', e);
     alert('Ошибка проверки пользователя.');
