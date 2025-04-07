@@ -96,7 +96,9 @@ let currentHtml = '';
 async function fetchProjectAndHotels() {
   const projectRes = await fetch(`/api/hotels-city/${projectId}`);
   const project = await projectRes.json();
+  
   listingUrl = project.listingUrl.split('?')[0];
+  city = project.city; // <<< сохраняем город
 
   const hotelsRes = await fetch(`/api/hotels-city/${projectId}/hotels`);
   hotels = await hotelsRes.json();
@@ -107,7 +109,7 @@ async function fetchProjectAndHotels() {
     return;
   }
 
-  showHotel(); // <<< СРАЗУ показать отель, даже если шаблонов нет
+  showHotel();
 
   try {
     const templatesRes = await fetch(`/api/hotels-city/${projectId}/templates`);
@@ -117,6 +119,7 @@ async function fetchProjectAndHotels() {
     console.warn('Нет шаблонов — можно создать новый');
   }
 }
+
 
 
 function fillTemplates() {
@@ -173,12 +176,23 @@ function updatePreview() {
 
   if (!currentHtml) return;
 
+  const badgeUrl = document.getElementById('hotelLinkDisplay').value; // полная ссылка с ID
+
+  // cleanUrl = base ссылка без id отеля
+  const cleanUrl = badgeUrl.split('-')[0];
+
   const replaced = currentHtml
     .replace(/%name%/g, hotel.name)
-    .replace(/%hotel_id%/g, hotel.hotelId);
+    .replace(/%city%/g, city)
+    .replace(/%hotelid%/g, hotel.hotelId)
+    .replaceAll('%listingurl%', badgeUrl) // В href вставляем ПОЛНУЮ ссылку
+    .replaceAll('%cleanurl%', cleanUrl); // В текст ссылки вставляем КРАСИВУЮ ссылку
 
   document.getElementById('previewContainer').innerHTML = replaced;
 }
+
+
+
 
 function copyField(id) {
   const field = document.getElementById(id);
