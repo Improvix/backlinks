@@ -8,10 +8,14 @@ firebase.initializeApp(firebaseConfig);
 const auth = firebase.auth();
 const db = firebase.firestore();
 
+const currentPath = window.location.pathname; // 🆕 Добавили текущий путь
+
 // Проверка авторизации и наличия в базе
 auth.onAuthStateChanged(async (user) => {
   if (!user) {
-    window.location.href = '/index.html'; // <<< ТЕПЕРЬ правильно!
+    if (currentPath !== '/index.html') { // 🛡️ Только если НЕ на index.html, редиректим
+      window.location.href = '/index.html';
+    }
     return;
   }
 
@@ -22,7 +26,9 @@ auth.onAuthStateChanged(async (user) => {
       // ❌ Пользователь НЕ найден в базе — выкидываем
       alert('⛔️ Доступ запрещен. Обратитесь к администратору.');
       await auth.signOut();
-      window.location.href = '/index.html'; // <<< И здесь
+      if (currentPath !== '/index.html') {
+        window.location.href = '/index.html';
+      }
       return;
     }
 
@@ -31,15 +37,20 @@ auth.onAuthStateChanged(async (user) => {
       // ❌ Если статус не admin и не user — тоже выкидываем
       alert('⛔️ Доступ запрещен. Обратитесь к администратору.');
       await auth.signOut();
-      window.location.href = '/index.html'; // <<< И здесь
+      if (currentPath !== '/index.html') {
+        window.location.href = '/index.html';
+      }
       return;
     }
 
     // ✅ Всё ок, пускаем дальше
+    document.body.style.display = 'block'; // Показываем страницу только после проверки
   } catch (e) {
     console.error('Ошибка проверки пользователя:', e);
     alert('Ошибка проверки пользователя.');
     await auth.signOut();
-    window.location.href = '/index.html'; // <<< И здесь
+    if (currentPath !== '/index.html') {
+      window.location.href = '/index.html';
+    }
   }
 });
