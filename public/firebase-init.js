@@ -12,7 +12,7 @@ const currentPath = window.location.pathname;
 
 // Основная логика после авторизации
 function afterAuth(user, userData) {
-  document.body.style.display = 'block';
+  document.getElementById('app').style.display = 'block';
 
   if (currentPath !== '/index.html') {
     const isAdmin = userData.type === 'admin';
