@@ -10,9 +10,12 @@ const db = firebase.firestore();
 
 const currentPath = window.location.pathname;
 
-// Основная логика после авторизации
-function afterAuth(user, userData) {
-  document.getElementById('app').style.display = 'block';
+// Основная логика после успешной авторизации
+async function afterAuth(user, userData) {
+  const app = document.getElementById('app');
+  if (app) {
+    app.style.display = 'block'; // Только если есть app, показываем
+  }
 
   if (currentPath !== '/index.html') {
     const isAdmin = userData.type === 'admin';
@@ -30,24 +33,43 @@ function afterAuth(user, userData) {
   }
 }
 
-// Проверка авторизации и наличия в базе
 auth.onAuthStateChanged(async (user) => {
   if (!user) {
-    if (currentPath !== '/index.html') {
+    // Нет юзера
+    if (currentPath === '/index.html') {
+      // На главной — показываем логин
+      if (document.getElementById('loginScreen')) {
+        document.getElementById('loginScreen').style.display = 'block';
+      }
+      if (document.getElementById('mainApp')) {
+        document.getElementById('mainApp').style.display = 'none';
+      }
+    } else {
+      // Не на главной — кидаем на логин
       window.location.href = '/index.html';
     }
     return;
   }
 
+  if (currentPath === '/index.html') {
+    // На главной странице: показываем меню
+    if (document.getElementById('loginScreen')) {
+      document.getElementById('loginScreen').style.display = 'none';
+    }
+    if (document.getElementById('mainApp')) {
+      document.getElementById('mainApp').style.display = 'block';
+    }
+    return;
+  }
+
+  // На внутренних страницах — проверяем базу
   try {
     const userDoc = await db.collection('users').doc(user.uid).get();
-    
+
     if (!userDoc.exists) {
       alert('⛔️ Доступ запрещен. Обратитесь к администратору.');
       await auth.signOut();
-      if (currentPath !== '/index.html') {
-        window.location.href = '/index.html';
-      }
+      window.location.href = '/index.html';
       return;
     }
 
@@ -55,13 +77,11 @@ auth.onAuthStateChanged(async (user) => {
     if (userData.type !== 'admin' && userData.type !== 'user') {
       alert('⛔️ Доступ запрещен. Обратитесь к администратору.');
       await auth.signOut();
-      if (currentPath !== '/index.html') {
-        window.location.href = '/index.html';
-      }
+      window.location.href = '/index.html';
       return;
     }
 
-    // 🆕 Ждём загрузки страницы если нужно
+    // Всё ок, грузим дальше
     if (document.readyState === 'loading') {
       document.addEventListener('DOMContentLoaded', () => {
         afterAuth(user, userData);
@@ -74,8 +94,6 @@ auth.onAuthStateChanged(async (user) => {
     console.error('Ошибка проверки пользователя:', e);
     alert('Ошибка проверки пользователя.');
     await auth.signOut();
-    if (currentPath !== '/index.html') {
-      window.location.href = '/index.html';
-    }
+    window.location.href = '/index.html';
   }
 });
