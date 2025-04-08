@@ -84,6 +84,16 @@
           >
             💾 Copy
           </button>
+
+          <button
+  class="btn btn-sm btn-outline-warning ms-2 p-2"
+  onclick="copyPreviewAsHTML()"
+  title="Скопировать HTML"
+  style="line-height: 1; display: flex; align-items: center;"
+>
+  📄 Copy HTML
+</button>
+
         </div>
       
         <div id="previewContainer" class="preview-container"></div>
@@ -179,6 +189,15 @@ function applyTemplate() {
 
   updatePreview();
 }
+function copyPreviewAsHTML() {
+  const html = document.getElementById('previewContainer').innerHTML;
+  navigator.clipboard.writeText(html).then(() => {
+    showToast("HTML скопирован!");
+  }).catch(err => {
+    alert("Ошибка при копировании HTML: " + err);
+  });
+}
+
 
 function updatePreview() {
   const hotel = hotels[currentHotelIndex];
