@@ -64,7 +64,11 @@
     if (hotels.length === 0) {
       document.getElementById('hotelInfo').innerHTML = '<h4>✅ Все отели обработаны!</h4>';
       document.getElementById('researchForm').style.display = 'none';
-      return;
+      // Нужно ДОБАВИТЬ редирект
+  setTimeout(() => {
+    window.location.href = `/email-builder-hotels.html?projectId=${projectId}`;
+  }, 1000); // Небольшая пауза 1 секунда для красоты
+  return;
     }
 
     showHotel();
