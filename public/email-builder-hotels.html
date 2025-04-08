@@ -190,11 +190,26 @@ function applyTemplate() {
   updatePreview();
 }
 function copyPreviewAsHTML() {
-  const html = document.getElementById('previewContainer').innerHTML;
-  navigator.clipboard.writeText(html).then(() => {
-    showToast("HTML скопирован!");
-  }).catch(err => {
-    alert("Ошибка при копировании HTML: " + err);
+  const output = document.getElementById('previewContainer');
+  const emailContent = output.innerHTML;
+
+  const fullHtml = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Email</title>
+</head>
+<body>
+${emailContent}
+</body>
+</html>
+`.trim();
+
+  navigator.clipboard.writeText(fullHtml).then(() => {
+    showToast("Полный HTML скопирован!");
+  }).catch((err) => {
+    alert("Ошибка при копировании полного HTML: " + err);
   });
 }
 
