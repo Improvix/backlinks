@@ -27,7 +27,7 @@
 
   <form id="researchForm" class="row g-3">
     <div class="col-md-4">
-      <input type="email" id="emailInput" class="form-control" placeholder="Email" required>
+      <input type="email" id="emailInput" class="form-control" placeholder="Email">
     </div>
     <div class="col-md-4">
       <input type="url" id="contactPageInput" class="form-control" placeholder="Link to contact page">
@@ -91,7 +91,6 @@
     const contactPageUrl = document.getElementById('contactPageInput').value.trim();
     const formUrl = document.getElementById('formPageInput').value.trim();
 
-    if (!email) return alert('Укажи email!');
 
     const hotel = hotels[currentHotelIndex];
 
