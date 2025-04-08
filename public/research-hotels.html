@@ -117,7 +117,7 @@
     currentHotelIndex++;
     if (currentHotelIndex >= hotels.length) {
       alert('✅ Все отели обработаны!');
-      window.location.href = '/hotels.html';
+      window.location.href = `/email-builder-hotels.html?projectId=${projectId}`;
     } else {
       showHotel();
     }
