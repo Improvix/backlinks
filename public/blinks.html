@@ -339,6 +339,12 @@ document.getElementById('editDateCreate').value = project.dateCreate ? new Date(
   modal.show();
 }
 
+// 🔥 ДОБАВЬ ПРОВЕРКУ ВОТ ТУТ
+if (userIds.length === 0) {
+    alert('Выберите хотя бы одного пользователя!');
+    return;
+  }
+  
 document.getElementById('editProjectForm').addEventListener('submit', async function(event) {
 
   event.preventDefault();
