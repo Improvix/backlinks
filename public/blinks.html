@@ -339,12 +339,8 @@ document.getElementById('editDateCreate').value = project.dateCreate ? new Date(
   modal.show();
 }
 
-// 🔥 ДОБАВЬ ПРОВЕРКУ ВОТ ТУТ
-if (userIds.length === 0) {
-    alert('Выберите хотя бы одного пользователя!');
-    return;
-  }
-  
+
+
 document.getElementById('editProjectForm').addEventListener('submit', async function(event) {
 
   event.preventDefault();
@@ -356,7 +352,12 @@ document.getElementById('editProjectForm').addEventListener('submit', async func
 const redirectUrl = document.getElementById('editRedirectUrl').value.trim();
 
   const userIds = Array.from(document.getElementById('editUserSelect').selectedOptions).map(opt => opt.value);
-
+ // 🔥 Правильное место для проверки
+ if (userIds.length === 0) {
+    alert('Выберите хотя бы одного пользователя!');
+    return;
+  }
+  
   try {
     const res = await fetch(`/api/project/${id}`, {
       method: 'PATCH',
