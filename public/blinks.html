@@ -329,7 +329,7 @@ document.getElementById('editDateCreate').value = project.dateCreate ? new Date(
     const opt = document.createElement('option');
     opt.value = user.uid;
     opt.textContent = user.email;
-    if (project.userIds?.includes(user.email)) {
+    if (project.userIds?.includes(user.uid)) {
       opt.selected = true;
     }
     select.appendChild(opt);
