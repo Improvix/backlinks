@@ -774,6 +774,7 @@ app.get('/api/user-projects', async (req, res) => {
         clonDomain: project.clonDomain || '',
         redirectUrl: project.redirectUrl || '',
         dateCreate: project.dateCreate || project.createdAt || '',
+        userIds: project.userIds || [],   // ✅ Обязательно добавь эту строчку
       });
     }
 
