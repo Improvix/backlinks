@@ -139,6 +139,14 @@ async function fetchProjectAndHotels() {
   }
 }
 
+function cleanCityUrl(url) {
+  let baseUrl = url.split('?')[0];
+  const parts = baseUrl.split('/');
+  let lastPart = parts[parts.length - 1];
+  lastPart = lastPart.replace(/-\d+$/, '');
+  parts[parts.length - 1] = lastPart;
+  return parts.join('/');
+}
 
 
 function fillTemplates() {
@@ -222,7 +230,7 @@ function updatePreview() {
   const badgeUrl = document.getElementById('hotelLinkDisplay').value; // полная ссылка с ID
 
   // cleanUrl = base ссылка без id отеля
-  const cleanUrl = badgeUrl.split('-')[0];
+  const cleanUrl = cleanCityUrl(badgeUrl);
 
   const replaced = currentHtml
     .replace(/%name%/g, hotel.name)
