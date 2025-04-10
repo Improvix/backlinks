@@ -161,6 +161,21 @@ window.changeProjectStatus = async function (projectId, newStatus) {
   }
 };
 
+let cachedUsers = null;
+
+async function loadAllUsers() {
+  if (cachedUsers) return cachedUsers;
+  try {
+    const res = await fetch('/api/all-users');
+    cachedUsers = await res.json();
+    return cachedUsers;
+  } catch (e) {
+    console.error('Ошибка загрузки пользователей:', e);
+    return [];
+  }
+}
+
+
 async function loadProjects(userId, isAdmin) {
   // USER ID ADMIN
 
@@ -281,7 +296,7 @@ const modalInstance = bootstrap.Modal.getInstance(modalElement);
 modalInstance.hide();
       document.getElementById('addProjectForm').reset();
       alert('Проект добавлен успешно!');
-      location.reload();
+      await loadProjects(currentUser.uid, currentUser.isAdmin);
     } else {
       alert('Ошибка: ' + (result.error || 'не удалось добавить проект'));
     }
@@ -290,25 +305,6 @@ modalInstance.hide();
     alert('Не удалось добавить проект. Попробуйте снова.');
   }
 });
-
-async function loadAllUsers() {
-    try {
-      const res = await fetch('/api/all-users');
-      const users = await res.json();
-
-      const select = document.getElementById('userSelect');
-      select.innerHTML = ''; // очищаем, если вдруг уже были
-
-      users.forEach(user => {
-        const opt = document.createElement('option');
-        opt.value = user.uid;
-        opt.textContent = user.email;
-        select.appendChild(opt);
-      });
-    } catch (e) {
-      console.error('Ошибка загрузки пользователей:', e);
-    }
-  }
 
   async function openEditModal(project) {
   document.getElementById('editProjectId').value = project.projectId;
@@ -322,8 +318,8 @@ document.getElementById('editDateCreate').value = project.dateCreate ? new Date(
   const select = document.getElementById('editUserSelect');
   select.innerHTML = '';
 
-  const res = await fetch('/api/all-users');
-  const users = await res.json();
+  const users = await loadAllUsers();
+
 
   users.forEach(user => {
     const opt = document.createElement('option');
@@ -370,7 +366,7 @@ const redirectUrl = document.getElementById('editRedirectUrl').value.trim();
       const modal = bootstrap.Modal.getInstance(document.getElementById('editProjectModal'));
       modal.hide();
       alert('Проект обновлён!');
-      location.reload();
+      await loadProjects(currentUser.uid, currentUser.isAdmin);
     } else {
       alert('Ошибка: ' + result.error);
     }
@@ -499,6 +495,20 @@ window.changeProjectStatus = async function (projectId, newStatus) {
   }
 };
 
+
+const addProjectModal = document.getElementById('addProjectModal');
+addProjectModal.addEventListener('show.bs.modal', async () => {
+  const users = await loadAllUsers();
+  const select = document.getElementById('userSelect');
+  select.innerHTML = '';
+
+  users.forEach(user => {
+    const opt = document.createElement('option');
+    opt.value = user.uid;
+    opt.textContent = user.email;
+    select.appendChild(opt);
+  });
+});
 
 
   </script>
