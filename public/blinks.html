@@ -162,6 +162,7 @@ window.changeProjectStatus = async function (projectId, newStatus) {
 };
 
 let cachedUsers = null;
+let currentUser = {};
 
 async function loadAllUsers() {
   if (cachedUsers) return cachedUsers;
@@ -381,7 +382,9 @@ const redirectUrl = document.getElementById('editRedirectUrl').value.trim();
 
   </script>
   <script>
-    window.triggerFileInput = function(projectId) {
+
+
+window.triggerFileInput = function(projectId) {
       document.getElementById(`file-${projectId}`).click();
     };
   
