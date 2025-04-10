@@ -329,7 +329,7 @@ document.getElementById('editDateCreate').value = project.dateCreate ? new Date(
     const opt = document.createElement('option');
     opt.value = user.uid;
     opt.textContent = user.email;
-    if (project.userIds?.includes(user.uid)) {
+    if (project.userIds?.includes(user.email)) {
       opt.selected = true;
     }
     select.appendChild(opt);
@@ -357,7 +357,7 @@ const redirectUrl = document.getElementById('editRedirectUrl').value.trim();
     alert('Выберите хотя бы одного пользователя!');
     return;
   }
-  
+
   try {
     const res = await fetch(`/api/project/${id}`, {
       method: 'PATCH',
