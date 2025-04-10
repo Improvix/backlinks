@@ -355,25 +355,26 @@ const redirectUrl = document.getElementById('editRedirectUrl').value.trim();
   }
 
   try {
-    const res = await fetch(`/api/project/${id}`, {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ name, mainDomain, userIds, clonDomain, redirectUrl })
-    });
+  const res = await fetch(`/api/project/${id}`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ name, mainDomain, userIds, clonDomain, redirectUrl })
+  });
 
-    const result = await res.json();
-    if (result.success) {
-      const modal = bootstrap.Modal.getInstance(document.getElementById('editProjectModal'));
-      modal.hide();
-      alert('Проект обновлён!');
-      await loadProjects(currentUser.uid, currentUser.isAdmin);
-    } else {
-      alert('Ошибка: ' + result.error);
-    }
-  } catch (e) {
-    console.error('Ошибка:', e);
-    alert('Проект не обновлён');
+  const result = await res.json();
+  if (result.success) {
+    const modal = bootstrap.Modal.getInstance(document.getElementById('editProjectModal'));
+    modal.hide();
+    alert('✅ Проект обновлён!');
+    await loadProjects(currentUser.uid, currentUser.isAdmin);
+  } else {
+    throw new Error(result.error || 'Не удалось обновить проект');
   }
+} catch (e) {
+  console.error('Ошибка:', e);
+  alert('❌ Проект не обновлён: ' + (e.message || 'Неизвестная ошибка'));
+}
+
 });
 
 
