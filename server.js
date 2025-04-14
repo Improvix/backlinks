@@ -1425,36 +1425,39 @@ app.get('/api/research-stats', async (req, res) => {
     const stats = [];
 
     for (const user of users) {
-      // Находим проект этого пользователя
+      // Находим ВСЕ проекты пользователя
       const projectsSnap = await db.collection('mainProject')
         .where('userIds', 'array-contains', user.uid)
         .get();
 
-      if (projectsSnap.empty) continue; // у юзера нет проектов
-
-      const projectDoc = projectsSnap.docs[0];
-      const projectId = projectDoc.id;
-
-      const backlinksSnap = await db.collection('mainProject')
-        .doc(projectId)
-        .collection('backlinks')
-        .get();
-
-      let total = backlinksSnap.size;
+      let totalLinks = 0;
       let doneTotal = 0;
       let doneToday = 0;
       let doneYesterday = 0;
 
-      for (const backlinkDoc of backlinksSnap.docs) {
-        const data = backlinkDoc.data();
-        if (data.reStatus === 'done') {
-          doneTotal++;
-          if (data.researchAt) {
-            const researchDate = new Date(data.researchAt);
-            if (researchDate >= today) {
-              doneToday++;
-            } else if (researchDate >= yesterday && researchDate < today) {
-              doneYesterday++;
+      for (const projectDoc of projectsSnap.docs) {
+        const projectId = projectDoc.id;
+
+        // Все беклинки проекта
+        const backlinksSnap = await db.collection('mainProject')
+          .doc(projectId)
+          .collection('backlinks')
+          .get();
+
+        totalLinks += backlinksSnap.size;
+
+        for (const backlinkDoc of backlinksSnap.docs) {
+          const data = backlinkDoc.data();
+          if (data.reStatus === 'done') {
+            doneTotal++;
+
+            if (data.researchAt) {
+              const researchDate = new Date(data.researchAt);
+              if (researchDate >= today) {
+                doneToday++;
+              } else if (researchDate >= yesterday && researchDate < today) {
+                doneYesterday++;
+              }
             }
           }
         }
@@ -1462,7 +1465,7 @@ app.get('/api/research-stats', async (req, res) => {
 
       stats.push({
         email: user.email,
-        total,
+        total: totalLinks,
         doneYesterday,
         doneToday,
         doneTotal,
@@ -1475,9 +1478,3 @@ app.get('/api/research-stats', async (req, res) => {
     res.status(500).json({ error: 'Ошибка при подсчёте статистики' });
   }
 });
-
-
-
-
-
-
