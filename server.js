@@ -1411,6 +1411,72 @@ app.get('/api/hotels-city/:projectId/remaining', async (req, res) => {
 });
 
 
+app.get('/api/research-stats', async (req, res) => {
+  try {
+    const usersSnap = await db.collection('users').get();
+    const users = usersSnap.docs.map(doc => ({ uid: doc.id, email: doc.data().email }));
+
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const yesterday = new Date(today);
+    yesterday.setDate(today.getDate() - 1);
+
+    const stats = [];
+
+    for (const user of users) {
+      // Находим проект этого пользователя
+      const projectsSnap = await db.collection('mainProject')
+        .where('userIds', 'array-contains', user.uid)
+        .get();
+
+      if (projectsSnap.empty) continue; // у юзера нет проектов
+
+      const projectDoc = projectsSnap.docs[0];
+      const projectId = projectDoc.id;
+
+      const backlinksSnap = await db.collection('mainProject')
+        .doc(projectId)
+        .collection('backlinks')
+        .get();
+
+      let total = backlinksSnap.size;
+      let doneTotal = 0;
+      let doneToday = 0;
+      let doneYesterday = 0;
+
+      for (const backlinkDoc of backlinksSnap.docs) {
+        const data = backlinkDoc.data();
+        if (data.reStatus === 'done') {
+          doneTotal++;
+          if (data.researchAt) {
+            const researchDate = new Date(data.researchAt);
+            if (researchDate >= today) {
+              doneToday++;
+            } else if (researchDate >= yesterday && researchDate < today) {
+              doneYesterday++;
+            }
+          }
+        }
+      }
+
+      stats.push({
+        email: user.email,
+        total,
+        doneYesterday,
+        doneToday,
+        doneTotal,
+      });
+    }
+
+    res.json(stats);
+  } catch (error) {
+    console.error('Ошибка при подсчёте статистики:', error);
+    res.status(500).json({ error: 'Ошибка при подсчёте статистики' });
+  }
+});
+
+
 
 
 
